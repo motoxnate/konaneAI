@@ -3,7 +3,7 @@ from src.board import Board
 
 
 def main():
-    board = Board(size=4)
+    board = Board(size=10)
     player = 1
     try:
         while True:
@@ -12,7 +12,7 @@ def main():
             moves = board.get_possible_moves(player=player)
             if len(moves) == 0:
                 break
-            print(moves)
+            print("\n".join([str((move, board.is_valid_move(move, player=player), board.captured_pieces_for_move(move))) for move in moves]))
             input("")
             if not board.do_move(moves[0]):
                 raise ValueError("Invalid move: " + str(moves[0]))

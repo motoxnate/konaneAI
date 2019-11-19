@@ -58,7 +58,69 @@ class Board:
     :return the number of pieces that would be captured by this move
     """
     def captured_pieces_for_move(self, move):
-        pass
+        if move[1] is None:
+            # Initial move
+            return 0
+
+        if not self.is_valid_move(move):
+            # Invalid move:
+            return -1
+
+        # Valid move
+        ((r1, c1), (r2, c2)) = move
+        return int((max(r1, r2) - min(r1, r2) + max(c1, c2) - min(c1, c2)) / 2)
+
+    """
+    Contains all the constraints for determining a valid move
+    :return True or False
+    """
+    def is_valid_move(self, move, player=None):
+        if player != 1 and player != -1:
+            raise ValueError("Player must be 1 or -1!")
+
+        # Making sure the length is equal to 2:
+        if len(move) != 2:
+            return False
+
+        # First or second move:
+        if move[1] is None:
+            return move in self.get_first_moves() or move in self.get_second_moves()
+
+        # Enumerating
+        ((r1, c1), (r2, c2)) = move
+
+        # Making sure start is not empty and player is correct if given
+        if (player and self._board[r1][c1] != player) or self._board[r1][c1] == 0:
+            return False
+
+        # Making sure either rows or cols are different
+        if (r1 == r2 and c1 == c2) or (r1 != r2 and c1 != c2):
+            return False
+
+        # Making sure the start and end are an even number of spaces apart
+        if (max(r1, r2) - min(r1, r2) + max(c1, c2) + min(c1, c2)) % 2 != 0:
+            return False
+
+        # Finally making sure every other tile is of the opposite player
+        if player is None:
+            player = self._board[r1][c1]
+        if r1 != r2:
+            for r in range(r1 + 1, r2, 2):
+                if self._board[r][c1] != -player:
+                    return False
+            for r in range(r1 + 2, r2 + 1, 2):
+                if self._board[r][c1] != 0:
+                    return False
+        else:
+            for c in range(c1 + 1, c2, 2):
+                if self._board[r1][c] != -player:
+                    return False
+            for c in range(c1 + 2, c2 + 1, 2):
+                if self._board[r1][c] != 0:
+                    return False
+
+        # Finally we return true if the move is correct!
+        return True
 
     def get_first_moves(self):
         e = self._size - 1

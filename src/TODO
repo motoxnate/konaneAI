@@ -1,0 +1,14 @@
+
+Consider the advantages of making algorithms symmetrical across vertical and horizontal axes
+    This would work really well if we could save board states
+    Saving board states is illegal... so it may not be much help because each game will probably not evaluate
+    symmetrically equal board states in the same game.
+    This will be beneficial if we can save board states between games...
+
+Design heuristic function for evaluating board states
+    a. Subtract enemy pieces from friendly pieces
+    b. Number of possible moves
+
+Create basic minimax search algorithm with depth limiting
+
+Add alpha-beta pruning
