@@ -10,8 +10,9 @@ class Board:
             self._board = [[1 if (i + n) % 2 == 0 else -1 for i in range(size)] for n in range(size)]
         else:
             # Copy constructor
-            self._board = board.get_array()
-            self._size = len(self._board)
+            old_board = board.get_array()
+            self._size = len(old_board)
+            self._board = [[old_board[r][c] for c in range(self._size)] for r in range(self._size)]
             self._move_number = board.get_move_number()
         self.positives = 0
         self.negatives = 0
