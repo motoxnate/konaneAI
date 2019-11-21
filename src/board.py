@@ -66,12 +66,12 @@ class Board:
     """
     :return the number of pieces that would be captured by this move
     """
-    def captured_pieces_for_move(self, move):
+    def captured_pieces_for_move(self, move, player):
         if move[1] is None:
             # Initial move
             return 0
 
-        if not self.is_valid_move(move):
+        if not self.is_valid_move(move, player=player):
             # Invalid move:
             return -1
 
