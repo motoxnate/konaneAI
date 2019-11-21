@@ -15,6 +15,8 @@ Design heuristic function for evaluating board states
 
 Create basic minimax search algorithm with depth limiting
 
+Graphics Py for GUI
+
 Add alpha-beta pruning
 
 Speed up

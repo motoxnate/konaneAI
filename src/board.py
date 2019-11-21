@@ -13,6 +13,8 @@ class Board:
             self._board = board.get_array()
             self._size = len(self._board)
             self._move_number = board.get_move_number()
+        self.positives = 0
+        self.negatives = 0
 
     def get_array(self):
         return self._board
@@ -236,6 +238,11 @@ class Board:
         states = [Board(board=self) for _b in range(len(moves))]
         [states[i].do_move(moves[i]) for i in range(len(moves))]
         return states
+
+    # Keep track over time
+    def update_pieces(self):
+        if self._move_number == 1:
+            self.positives = None
 
     def print(self):
         for row in self._board:
