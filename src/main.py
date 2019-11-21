@@ -16,7 +16,7 @@ def main():
             moves = board.get_possible_moves(player=player)
             if len(moves) == 0:
                 break
-            print("\n".join([str((move, board.is_valid_move(move, player=player), board.captured_pieces_for_move(move, player))) for move in moves]))
+            print("\n".join([str((move, board.is_valid_move(move, player=player), board.captured_pieces_for_move(move, player), board.get_num_pieces(player))) for move in moves]))
 
             move = ((0, 0), None)
             if board.get_move_number() < 2:
