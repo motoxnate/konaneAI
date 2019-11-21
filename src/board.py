@@ -1,12 +1,21 @@
 
 class Board:
 
-    def __init__(self, size=18):
-        if not size % 2 == 0:
-            raise ValueError("Board size must be even")
-        self._size = size
-        self._move_number = 1
-        self._board = [[1 if (i + n) % 2 == 0 else -1 for i in range(size)] for n in range(size)]
+    def __init__(self, size=18, board=None):
+        if board is None:
+            if not size % 2 == 0:
+                raise ValueError("Board size must be even")
+            self._size = size
+            self._move_number = 1
+            self._board = [[1 if (i + n) % 2 == 0 else -1 for i in range(size)] for n in range(size)]
+        else:
+            # Copy constructor
+            self._board = board.get_array()
+            self._size = len(self._board)
+            self._move_number = board.get_move_number()
+
+    def get_array(self):
+        return self._board
 
     def get_move_number(self):
         return self._move_number
@@ -217,6 +226,15 @@ class Board:
                     moves.extend(self._get_moves_for_blank_space(r, c, player))
 
         return moves
+
+    """
+    Creates a list of resultant states based on all the possible moves in this state
+    """
+    def get_possible_resultant_states(self, player):
+        moves = self.get_possible_moves(player)
+        states = [Board(board=self) for _b in range(len(moves))]
+        [states[i].do_move(moves[i]) for i in range(len(moves))]
+        return states
 
     def print(self):
         for row in self._board:

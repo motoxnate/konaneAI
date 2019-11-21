@@ -12,3 +12,8 @@ Design heuristic function for evaluating board states
 Create basic minimax search algorithm with depth limiting
 
 Add alpha-beta pruning
+
+Speed up
+    Switch to numpy arrays
+    Evaluate efficiency of helper functions
+        Make sure most are constant time with only a few O(n)
