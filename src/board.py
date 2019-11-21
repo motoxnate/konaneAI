@@ -230,8 +230,9 @@ class Board:
     """
     Creates a list of resultant states based on all the possible moves in this state
     """
-    def get_possible_resultant_states(self, player):
-        moves = self.get_possible_moves(player)
+    def get_possible_resultant_states(self, player, moves=None):
+        if moves is None:
+            moves = self.get_possible_moves(player)
         states = [Board(board=self) for _b in range(len(moves))]
         [states[i].do_move(moves[i]) for i in range(len(moves))]
         return states
