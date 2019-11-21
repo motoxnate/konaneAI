@@ -11,7 +11,11 @@ def main():
             moves = board.get_possible_moves(player=player)
             if len(moves) == 0:
                 break
-            print("\n".join([str((move, board.is_valid_move(move, player=player), board.captured_pieces_for_move(move, player))) for move in moves]))
+            print("\n".join([str((move,
+                                  board.is_valid_move(move, player=player),
+                                  board.captured_pieces_for_move(move, player),
+                                  board.get_num_pieces(player)))
+                             for move in moves]))
             input("")
             if not board.do_move(moves[0]):
                 raise ValueError("Invalid move: " + str(moves[0]))

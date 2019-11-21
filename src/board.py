@@ -13,8 +13,8 @@ class Board:
             self._board = board.get_array()
             self._size = len(self._board)
             self._move_number = board.get_move_number()
-        self.positives = 0
-        self.negatives = 0
+        self._positives = int((size ** 2) / 2)
+        self._negatives = int((size ** 2) / 2)
 
     def get_array(self):
         return self._board
@@ -36,6 +36,11 @@ class Board:
         self._move_number += 1
 
         if move[1] is None:
+            # Update number of pieces
+            if self._board[move[0][0]][move[0][1]] > 0:
+                self._positives -= 1
+            elif self._board[move[0][0]][move[0][1]] < 0:
+                self._negatives -= 1
             self._board[move[0][0]][move[0][1]] = 0
             return True
 
@@ -45,6 +50,15 @@ class Board:
 
         # Saving the attacking player
         player = self._board[r1][c1]
+
+        # Update pieces on the board
+        num_captured = self.captured_pieces_for_move(move, player)
+        if player > 0:
+            self._negatives -= num_captured
+        elif player < 0:
+            self._positives -= num_captured
+
+        # Set attacking place to 0
         self._board[r1][c1] = 0
 
         # Logic for computing which pieces have been captured
@@ -239,10 +253,11 @@ class Board:
         [states[i].do_move(moves[i]) for i in range(len(moves))]
         return states
 
-    # Keep track over time
-    def update_pieces(self):
-        if self._move_number == 1:
-            self.positives = None
+    def get_num_pieces(self, player=None):
+        if player > 0:
+            return self._positives
+        if player < 0:
+            return self._negatives
 
     def print(self):
         for row in self._board:
