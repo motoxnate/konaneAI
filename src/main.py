@@ -1,5 +1,6 @@
 from src.board import Board
-from src.minimax import minimax
+from minimax import minimax
+from src.minimax_process import parallel_minimax
 
 
 def move_count_heuristic(board, player):
@@ -11,6 +12,7 @@ def main():
     player = 1
     try:
         while True:
+            print("\n")
             board.print()
             print("Turn:", player)
             moves = board.get_possible_moves(player=player)
@@ -22,7 +24,7 @@ def main():
             if board.get_move_number() < 2:
                 move = moves[0]
             else:
-                h, move = minimax(board, player, move_count_heuristic, 3, player)
+                h, move = parallel_minimax(board, player, move_count_heuristic, 3, player)
             print("Selected move: " + str(move))
 
             # input("")
