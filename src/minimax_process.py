@@ -17,8 +17,11 @@ class MinimaxProcess(Process):
         self._status = "NOT_STARTED"
 
     def run(self):
-        self._status = "RUNNING"
-        self._return.value = minimax.minimax_helper(self._board, self._player, self._heuristic, self._depth, self._m)
+        try:
+            self._status = "RUNNING"
+            self._return.value = minimax.minimax_helper(self._board, self._player, self._heuristic, self._depth, self._m)
+        except KeyboardInterrupt:
+            pass
         self._status = "FINISHED"
 
     def get_status(self):
