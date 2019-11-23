@@ -1,5 +1,9 @@
+import numpy as np
+
 
 class Board:
+
+    __USE_NUMPY = True
 
     def __init__(self, size=18, board=None):
         if board is None:
@@ -7,12 +11,21 @@ class Board:
                 raise ValueError("Board size must be even")
             self._size = size
             self._move_number = 1
-            self._board = [[1 if (i + n) % 2 == 0 else -1 for i in range(size)] for n in range(size)]
+            if Board.__USE_NUMPY:
+                self._board = np.zeros((size, size), dtype=np.int8)
+                for i in range(size):
+                    for n in range(size):
+                        self._board[i][n] = 1 if (i + n) % 2 == 0 else -1
+            else:
+                self._board = [[1 if (i + n) % 2 == 0 else -1 for i in range(size)] for n in range(size)]
         else:
             # Copy constructor
             old_board = board.get_array()
             self._size = len(old_board)
-            self._board = [[old_board[r][c] for c in range(self._size)] for r in range(self._size)]
+            if Board.__USE_NUMPY:
+                self._board = np.copy(old_board)
+            else:
+                self._board = [[old_board[r][c] for c in range(self._size)] for r in range(self._size)]
             self._move_number = board.get_move_number()
         self._positives = int((size ** 2) / 2)
         self._negatives = int((size ** 2) / 2)
@@ -23,6 +36,11 @@ class Board:
 
     def get_move_number(self):
         return self._move_number
+
+    def get_player_piece_count(self, player):
+        if player == 1:
+            return self._positives
+        return self._negatives
 
     """
     Moves are represented with tuples of row column pairs.
@@ -59,7 +77,7 @@ class Board:
         num_captured = self.captured_pieces_for_move(move, player)
         if player == 1:
             self._negatives -= num_captured
-        elif player < 0:
+        elif player == -1:
             self._positives -= num_captured
 
         # Set attacking place to 0
@@ -271,5 +289,11 @@ class Board:
             return self._negatives
 
     def print(self):
+        sep = " "
         for row in self._board:
-            print(row)
+            for val in row:
+                if val == -1:
+                    print(sep + str(val), end="")
+                else:
+                    print(sep + " " + str(val), end="")
+            print(sep)

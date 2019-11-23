@@ -7,14 +7,17 @@ def move_count_heuristic(board, player):
     return len(board.get_possible_moves(player))
 
 
+def piece_difference_heuristic(board, player):
+    return board.get_player_piece_count(player) - board.get_player_piece_count(-player)
+
+
 def main():
     board = Board(size=18)
     player = 1
     try:
         while True:
-            print("\n")
             board.print()
-            print("Turn:", player)
+            print(board.get_move_number(), "Turn:", player)
             moves = board.get_possible_moves(player=player)
             if len(moves) == 0:
                 break
@@ -24,7 +27,7 @@ def main():
             if board.get_move_number() < 2:
                 move = moves[0]
             else:
-                h, move = parallel_minimax(board, player, move_count_heuristic, 3, player)
+                h, move = parallel_minimax(board, player, piece_difference_heuristic, 3, player)
             print("Selected move: " + str(move))
 
             # input("")
