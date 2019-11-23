@@ -16,6 +16,7 @@ class Board:
             self._move_number = board.get_move_number()
         self._positives = int((size ** 2) / 2)
         self._negatives = int((size ** 2) / 2)
+        self._moves = {}
 
     def get_array(self):
         return self._board
@@ -51,10 +52,12 @@ class Board:
 
         # Saving the attacking player
         player = self._board[r1][c1]
+        if player != -1 and player != 1:
+            return False
 
         # Update pieces on the board
         num_captured = self.captured_pieces_for_move(move, player)
-        if player > 0:
+        if player == 1:
             self._negatives -= num_captured
         elif player < 0:
             self._positives -= num_captured
@@ -78,6 +81,9 @@ class Board:
 
         # Placing the piece that did the capturing in its final position
         self._board[r2][c2] = player
+
+        # Resetting the move cache when the board state changes
+        self._moves = {}
         return True
 
     """
@@ -88,7 +94,7 @@ class Board:
             # Initial move
             return 0
 
-        if not self.is_valid_move(move, player=player):
+        if not self.is_valid_move(move, player):
             # Invalid move:
             return -1
 
@@ -100,9 +106,9 @@ class Board:
     Contains all the constraints for determining a valid move
     :return True or False
     """
-    def is_valid_move(self, move, player=None):
+    def is_valid_move(self, move, player):
         if player != 1 and player != -1:
-            raise ValueError("Player must be 1 or -1!")
+            raise ValueError("%s is an invalid player" % str(player))
 
         # Making sure the length is equal to 2:
         if len(move) != 2:
@@ -236,12 +242,16 @@ class Board:
         if self._move_number == 2:
             return self.get_second_moves()
 
+        if player in self._moves:
+            return self._moves[player]
+
         moves = []
         for r in range(self._size):
             for c in range(self._size):
                 if self._board[r][c] == 0:
                     moves.extend(self._get_moves_for_blank_space(r, c, player))
 
+        self._moves[player] = moves
         return moves
 
     """
