@@ -11,8 +11,27 @@ def piece_difference_heuristic(board, player):
     return board.get_player_piece_count(player) - board.get_player_piece_count(-player)
 
 
+"""
+Operational Modes
+
+TRAINING:
+Generate a list of random weights 
+
+FINAL_EXAM:
+Perform first and second moves
+Alternate getting moves and sending next move
+"""
+__MODE = "TRAINING"
+
+
 def main():
-    board = Board(size=12)
+
+    if __MODE == "TRAINING":
+        pass
+    elif __MODE == "FINAL_EXAM":
+        pass
+
+    board = Board(size=18)
     player = 1
     try:
         while True:
@@ -30,7 +49,7 @@ def main():
                 if player == 1:
                     h, move = parallel_minimax(board, player, move_count_heuristic, 15, player)
                 else:
-                    h, move = parallel_minimax(board, player, piece_difference_heuristic, 5, player)
+                    h, move = parallel_minimax(board, player, piece_difference_heuristic, 15, player)
             print("Selected move: " + str(move))
 
             # input("")
@@ -38,7 +57,8 @@ def main():
                 raise ValueError("Invalid move: " + str(move))
             player *= -1
     except KeyboardInterrupt:
-        pass
+        print("NO CONTEST!!!")
+        exit()
     print("Player", -1 * player, "Wins!")
 
 

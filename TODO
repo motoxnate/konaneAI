@@ -8,8 +8,9 @@ Consider the advantages of making algorithms symmetrical across vertical and hor
 Design heuristic function for evaluating board states
     a. Subtract enemy pieces from friendly pieces
     b. Number of possible moves
-    c. Use constants for weighting that could be self adjusting.
-    d. Training methods for minimax constants.
+    c. Use constants for weighting that could be self adjusting
+    d. Training methods for minimax constants
+    e. For the endgame, the heuristic should prioritize killer moves
 
 Graphics Py for GUI
 
