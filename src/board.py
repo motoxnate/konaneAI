@@ -7,17 +7,7 @@ class Board:
 
     def __init__(self, size=18, board=None):
         if board is None:
-            if not size % 2 == 0:
-                raise ValueError("Board size must be even")
-            self._size = size
-            self._move_number = 1
-            if Board.__USE_NUMPY:
-                self._board = np.zeros((size, size), dtype=np.int8)
-                for i in range(size):
-                    for n in range(size):
-                        self._board[i][n] = 1 if (i + n) % 2 == 0 else -1
-            else:
-                self._board = [[1 if (i + n) % 2 == 0 else -1 for i in range(size)] for n in range(size)]
+            self._board = self.generate_board(size)
         else:
             # Copy constructor
             old_board = board.get_array()
@@ -30,6 +20,21 @@ class Board:
         self._positives = int((size ** 2) / 2)
         self._negatives = int((size ** 2) / 2)
         self._moves = {}
+
+    def generate_board(self, size, test=False):
+        if not size % 2 == 0:
+            raise ValueError("Board size must be even")
+        if not test:
+            self._size = size
+            self._move_number = 1
+        if Board.__USE_NUMPY:
+            board = np.zeros((size, size), dtype=np.int8)
+            for i in range(size):
+                for n in range(size):
+                    board[i][n] = 1 if (i + n) % 2 == 0 else -1
+        else:
+            board = [[1 if (i + n) % 2 == 0 else -1 for i in range(size)] for n in range(size)]
+        return board
 
     def get_array(self):
         return self._board
@@ -287,6 +292,17 @@ class Board:
             return self._positives
         if player < 0:
             return self._negatives
+
+    def is_valid_board(self, board=None):
+        if board is None:
+            board = self._board
+        test_board = self.generate_board(board.shape[0], test=True)
+        for i in range(board.shape[0]):
+            for j in range(board.shape[1]):
+                if not (board[i][j] == test_board[i][j] or board[i][j] == 0):
+                    return False
+                else:
+                    return True
 
     def print(self):
         sep = " "
