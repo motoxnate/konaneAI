@@ -11,7 +11,7 @@ def piece_difference_heuristic(board, player):
     return board.get_player_piece_count(player) - board.get_player_piece_count(-player)
 
 
-def main():
+def main(tester=None, test_board=False, test_moves=False):
     board = Board(size=12)
     player = 1
     try:
@@ -33,9 +33,16 @@ def main():
                     h, move = parallel_minimax(board, player, piece_difference_heuristic, 5, player)
             print("Selected move: " + str(move))
 
+            if test_moves is True:
+                board_a = board.get_array()
             # input("")
             if not board.do_move(move):
                 raise ValueError("Invalid move: " + str(move))
+            # A few unit tests
+            if test_board is True:
+                tester.valid_board_helper(board)
+            if test_moves is True:
+                pass
             player *= -1
     except KeyboardInterrupt:
         pass

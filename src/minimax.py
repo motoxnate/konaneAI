@@ -11,6 +11,8 @@ Basic minimax algorithm for Konane
 :param heuristic: static evaluation function(board, player)
 :return heuristic, move
 """
+
+
 def minimax(board, player, heuristic, depth, m=1):
     if depth == 0:
         return heuristic(board, player), None
