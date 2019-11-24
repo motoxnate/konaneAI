@@ -1,6 +1,4 @@
 
-Add a move that can just be None in which the player does not do anything and loses automatically
-
 Consider the advantages of making algorithms symmetrical across vertical and horizontal axes
     This would work really well if we could save board states
     Saving board states is illegal... so it may not be much help because each game will probably not evaluate
@@ -12,8 +10,6 @@ Design heuristic function for evaluating board states
     b. Number of possible moves
     c. Use constants for weighting that could be self adjusting.
     d. Training methods for minimax constants.
-
-Create basic minimax search algorithm with depth limiting
 
 Graphics Py for GUI
 

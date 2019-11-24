@@ -27,7 +27,7 @@ def main():
             if board.get_move_number() < 2:
                 move = moves[0]
             else:
-                h, move = parallel_minimax(board, player, piece_difference_heuristic, 3, player)
+                h, move = parallel_minimax(board, player, piece_difference_heuristic, 15, player)
             print("Selected move: " + str(move))
 
             # input("")
