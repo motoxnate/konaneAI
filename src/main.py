@@ -12,7 +12,7 @@ def piece_difference_heuristic(board, player):
 
 
 def main():
-    board = Board(size=18)
+    board = Board(size=12)
     player = 1
     try:
         while True:
@@ -27,7 +27,10 @@ def main():
             if board.get_move_number() < 2:
                 move = moves[0]
             else:
-                h, move = parallel_minimax(board, player, piece_difference_heuristic, 15, player)
+                if player == 1:
+                    h, move = parallel_minimax(board, player, move_count_heuristic, 15, player)
+                else:
+                    h, move = parallel_minimax(board, player, piece_difference_heuristic, 5, player)
             print("Selected move: " + str(move))
 
             # input("")
