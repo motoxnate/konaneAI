@@ -63,24 +63,6 @@ def minimax_helper(board, player, heuristic_obj, depth, m=1):
     return h_lim
 
 
-"""
-if maximizingPlayer then
-        value := −∞
-        for each child of node do
-            value := max(value, alphabeta(child, depth − 1, α, β, FALSE))
-            α := max(α, value)
-            if α ≥ β then
-                break (* β cut-off *)
-        return value
-    else
-        value := +∞
-        for each child of node do
-            value := min(value, alphabeta(child, depth − 1, α, β, TRUE))
-            β := min(β, value)
-            if α ≥ β then
-                break (* α cut-off *)
-        return value
-"""
 def alpha_beta_helper(board, player, heuristic_obj, depth, alpha=None, beta=None, m=1):
     if alpha is None:
         alpha = float("inf")
