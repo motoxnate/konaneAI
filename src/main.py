@@ -19,6 +19,45 @@ Alternate getting moves and sending next move
 __MODE = "TRAINING"
 
 
+def do_game(heuristic_obj_1, heuristic_obj_2, depth=5, size=18, player=1, verbose=False):
+    """
+    Completes a game with the given inputs
+    :param heuristic_obj_1: player 1's heuristic
+    :param heuristic_obj_2: player -1's heuristic
+    :param depth:
+    :param size:
+    :param player: the starting player
+    :param verbose:
+    :return: the winning player of the game tupled with the turn count
+    """
+    board = Board(size=size)
+    while True:
+        moves = board.get_possible_moves(player=player)
+        if len(moves) == 0:
+            break
+        h = 0
+        if board.get_move_number() < 2:
+            move = moves[0]
+        else:
+            if player == 1:
+                h, move = parallel_minimax(board, player, heuristic_obj_1, depth)
+            else:
+                h, move = parallel_minimax(board, player, heuristic_obj_2, depth)
+
+        if verbose:
+            print("\n")
+            board.print()
+            print(h, move)
+        else:
+            if board.get_move_number() % 5 == 0:
+                print(board.get_move_number(), end=" ")
+
+        if not board.do_move(move):
+            raise ValueError("Invalid move: " + str(move))
+        player *= -1
+    return -player, board.get_move_number()
+
+
 def main(tester=None, test_board=False, test_moves=False):
 
     if __MODE == "TRAINING":
@@ -36,37 +75,14 @@ def main(tester=None, test_board=False, test_moves=False):
                 """
                 learning_heuristic2 = MCPDLearningHeuristic(always_random=True)
                 print("Player 1: %s\nPlayer -1: %s" % (str(learning_heuristic1), str(learning_heuristic2)))
-                board = Board(size=10)
-                player = -1 if session_number % 2 == 0 else 1
+                starting_player = -1 if session_number % 2 == 0 else 1
                 cur = time.time()
-                while True:
-                    if board.get_move_number() % 5 == 0:
-                        print(board.get_move_number(), end=" ")
 
-                    moves = board.get_possible_moves(player=player)
-                    if len(moves) == 0:
-                        break
-                    move = ((0, 0), None)
-                    h = 0
-                    if board.get_move_number() < 2:
-                        move = moves[0]
-                    else:
-                        if player == 1:
-                            h, move = parallel_minimax(board, player, learning_heuristic1, 5)
-                        else:
-                            h, move = parallel_minimax(board, player, learning_heuristic2, 5)
-
-                    # print("\n")
-                    # board.print()
-                    # print(h, move)
-
-                    if not board.do_move(move):
-                        raise ValueError("Invalid move: " + str(move))
-                    player *= -1
-                print("\nPlayer %d lost in %d turns in %d seconds" % (player, board.get_move_number(), time.time() - cur))
+                winner, move_count = do_game(learning_heuristic1, learning_heuristic2, size=6, player=starting_player, verbose=False)
+                print("\nPlayer %d won in %d turns in %d seconds" % (winner, move_count, time.time() - cur))
 
                 # Checking to see who won, setting the winning value to the first slot, and saving it.
-                if player == 1:
+                if winner == -1:
                     print("=========> New settings: %s <=========" % str(learning_heuristic2))
                     learning_heuristic1 = learning_heuristic2
                     learning_heuristic1.save_constants_to_file()
