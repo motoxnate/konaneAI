@@ -1,14 +1,7 @@
 from src.board import Board
+from src.heuristic import *
 from minimax import minimax
 from src.minimax_process import parallel_minimax
-
-
-def move_count_heuristic(board, player):
-    return len(board.get_possible_moves(player))
-
-
-def piece_difference_heuristic(board, player):
-    return board.get_player_piece_count(player) - board.get_player_piece_count(-player)
 
 
 """
@@ -32,6 +25,8 @@ def main(tester=None, test_board=False, test_moves=False):
         pass
 
     board = Board(size=12)
+    move_count_heuristic = MoveCountHeuristic()
+    piece_difference_heuristic = PieceDifferenceHeuristic()
     player = 1
     try:
         while True:

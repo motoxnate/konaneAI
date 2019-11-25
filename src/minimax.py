@@ -13,19 +13,19 @@ Basic minimax algorithm for Konane
 """
 
 
-def minimax(board, player, heuristic, depth, m=1):
+def minimax(board, player, heuristic_obj, depth, m=1):
     if depth == 0:
-        return heuristic(board, player), None
+        return heuristic_obj.heuristic(board, player), None
 
     # Deriving new states
     moves = board.get_possible_moves(player)
     if len(moves) == 0:
-        return heuristic(board, player), None
+        return heuristic_obj.heuristic(board, player), None
     states = board.get_possible_resultant_states(player, moves)
 
     weighted_moves = []
     for i in range(len(moves)):
-        weight = minimax_helper(states[i], player * -1, heuristic, depth - 1, m * -1)
+        weight = minimax_helper(states[i], player * -1, heuristic_obj, depth - 1, m * -1)
         weighted_moves.append((weight, moves[i]))
 
     # Finding the min or max weight
@@ -39,19 +39,19 @@ def minimax(board, player, heuristic, depth, m=1):
     return h_lim, move
 
 
-def minimax_helper(board, player, heuristic, depth, m=1):
+def minimax_helper(board, player, heuristic_obj, depth, m=1):
     if depth == 0:
-        return heuristic(board, player)
+        return heuristic_obj.heuristic(board, player)
 
     # Deriving new states
     moves = board.get_possible_moves(player)
     if len(moves) == 0:
-        return heuristic(board, player)
+        return heuristic_obj.heuristic(board, player)
     states = board.get_possible_resultant_states(player, moves)
 
     weighted_moves = []
     for i in range(len(moves)):
-        weight = minimax_helper(states[i], player * -1, heuristic, depth - 1, m * -1)
+        weight = minimax_helper(states[i], player * -1, heuristic_obj, depth - 1, m * -1)
         weighted_moves.append((weight, moves[i]))
 
     # Finding the min or max weight
@@ -61,16 +61,6 @@ def minimax_helper(board, player, heuristic, depth, m=1):
         if func(h, h_lim) == h:
             h_lim = h
     return h_lim
-
-
-def alpha_beta(board, player, heuristic, depth, alpha=None, beta=None, m=1):
-    if alpha is None:
-        alpha = float("inf")
-    if beta is None:
-        beta = -float("inf")
-
-    if depth == 0:
-        return heuristic(board, player)
 
 
 """
@@ -91,26 +81,26 @@ if maximizingPlayer then
                 break (* α cut-off *)
         return value
 """
-def alpha_beta_helper(board, player, heuristic, depth, alpha=None, beta=None, m=1):
+def alpha_beta_helper(board, player, heuristic_obj, depth, alpha=None, beta=None, m=1):
     if alpha is None:
         alpha = float("inf")
     if beta is None:
         beta = -float("inf")
 
     if depth == 0:
-        return heuristic(board, player)
+        return heuristic_obj.heuristic(board, player)
 
     # Deriving new states
     moves = board.get_possible_moves(player)
     if len(moves) == 0:
-        return heuristic(board, player)
+        return heuristic_obj.heuristic(board, player)
     states = board.get_possible_resultant_states(player, moves)
 
     if m == 1:
         # Maximizing player
         value = -float("inf")
         for state in states:
-            value = max(value, alpha_beta_helper(state, player * -1, heuristic, depth - 1, alpha, beta, m * -1))
+            value = max(value, alpha_beta_helper(state, player * -1, heuristic_obj, depth - 1, alpha, beta, m * -1))
             alpha = max(alpha, value)
             if alpha >= beta:
                 break
@@ -119,7 +109,7 @@ def alpha_beta_helper(board, player, heuristic, depth, alpha=None, beta=None, m=
         # Minimizing player
         value = float("inf")
         for state in states:
-            value = min(value, alpha_beta_helper(state, player * -1, heuristic, depth - 1, alpha, beta, m * -1))
+            value = min(value, alpha_beta_helper(state, player * -1, heuristic_obj, depth - 1, alpha, beta, m * -1))
             beta = min(beta, value)
             if alpha >= beta:
                 break
