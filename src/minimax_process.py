@@ -13,7 +13,7 @@ class MinimaxProcess(Process):
         self._heuristic = heuristic
         self._depth = depth
         self._m = m
-        self._return = Value('i', -1)
+        self._return = Value('f', -1)
         self._status = "NOT_STARTED"
 
     def run(self):
@@ -51,4 +51,5 @@ def parallel_minimax(board, player, heuristic_obj, depth, m=1):
         if func(h, h_lim) == h:
             h_lim = h
             move = m
+    # print(weighted_moves, h_lim, move)
     return h_lim, move
