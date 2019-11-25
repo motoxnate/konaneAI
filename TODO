@@ -12,11 +12,20 @@ Design heuristic function for evaluating board states
     d. Training methods for minimax constants
     e. For the endgame, the heuristic should prioritize killer moves
 
+Implement Heuristic Equation
+    This should be some sort of linear combination of the heuristics, the number of moves, and constants
+    For every heuristic, we should include two terms:
+        c1 * n * h
+        c2 * 1/n * h
+        c1 and c2 are constants
+        n is the move number
+        h is the heuristic output
+        This is because we need some heuristics to scale proportionally with the move number and some that scale
+        inversely
+        We may want to add other powers in the future other than just 1 and -1
+
 Graphics Py for GUI
 
-Add alpha-beta pruning
-
 Speed up
-    Switch to numpy arrays
     Evaluate efficiency of helper functions
         Make sure most are constant time with only a few O(n)
