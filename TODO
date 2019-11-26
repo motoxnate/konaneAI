@@ -24,6 +24,8 @@ Implement Heuristic Equation
         inversely
         We may want to add other powers in the future other than just 1 and -1
 
+Add alpha beta maximax_pp algorithm
+
 Graphics Py for GUI
 
 Speed up

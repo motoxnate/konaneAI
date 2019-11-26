@@ -16,7 +16,7 @@ FINAL_EXAM:
 Perform first and second moves
 Alternate getting moves and sending next move
 """
-__MODE = "TRAINING"
+__MODE = "HEURISTIC_COMPETITION"
 
 
 def do_game(heuristic_obj_1, heuristic_obj_2, depth=5, size=18, player=1, verbose=False):
@@ -58,6 +58,23 @@ def do_game(heuristic_obj_1, heuristic_obj_2, depth=5, size=18, player=1, verbos
     return -player, board.get_move_number()
 
 
+def do_games(game_number, heuristic_obj_1, heuristic_obj_2, depth=5, size=18, verbose=False):
+    wins1 = 0
+    wins2 = 0
+    total_move_numbers = 0
+    player = 1
+    for i in range(game_number):
+        winner, move_number = do_game(heuristic_obj_1, heuristic_obj_2, depth, size, player, verbose)
+        if winner == 1:
+            wins1 += 1
+        else:
+            wins2 += 1
+        total_move_numbers += move_number
+        player *= -1
+        print()
+    return wins1, wins2, total_move_numbers
+
+
 def main(tester=None, test_board=False, test_moves=False):
 
     if __MODE == "TRAINING":
@@ -93,50 +110,28 @@ def main(tester=None, test_board=False, test_moves=False):
                 # input("")
         except KeyboardInterrupt:
             print("\nNormal Exit, %d training sessions run." % session_number)
-        exit(0)
-    elif __MODE == "FINAL_EXAM":
+    elif __MODE == "HEURISTIC_COMPETITION":
+
+        # Change these to compare different heuristics
+        h1 = MoveCountHeuristic()
+        h2 = PieceDifferenceHeuristic()
+        total_games = 5
+
+        wins1, wins2, total_turns = do_games(total_games, h1, h2, depth=5, size=18)
+        message = """
+        
+        Heuristic Competition Finished!
+        %d Games played, %d turns played, about %f turns on average per game
+        %d Player 1 wins, about %d%% of the time
+        %d Player -1 wins, about %d%% of the time
+        """ % (total_games, total_turns, total_turns / total_games, wins1, int(wins1 / total_games * 100), wins2, int(wins2 / total_games * 100))
+        print(message)
+
+    elif __MODE == "HUMAN_PLAYER":
         pass
 
-    board = Board(size=18)
-    move_count_heuristic = MoveCountHeuristic()
-    piece_difference_heuristic = PieceDifferenceHeuristic()
-    learning_heuristic1 = MCPDLearningHeuristic()
-    learning_heuristic2 = MCPDLearningHeuristic()
-    player = 1
-    try:
-        while True:
-            board.print()
-            print(board.get_move_number(), "Turn:", player)
-            moves = board.get_possible_moves(player=player)
-            if len(moves) == 0:
-                break
-            print("\n".join([str((move, board.is_valid_move(move, player=player), board.captured_pieces_for_move(move, player), board.get_num_pieces(player))) for move in moves]))
-
-            move = ((0, 0), None)
-            if board.get_move_number() < 2:
-                move = moves[0]
-            else:
-                if player == 1:
-                    h, move = parallel_minimax(board, player, learning_heuristic1, 5, player)
-                else:
-                    h, move = parallel_minimax(board, player, learning_heuristic2, 5, player)
-            print("Selected move: " + str(move))
-
-            if test_moves is True:
-                board_a = board.get_array()
-            # input("")
-            if not board.do_move(move):
-                raise ValueError("Invalid move: " + str(move))
-            # A few unit tests
-            if test_board is True:
-                tester.valid_board_helper(board)
-            if test_moves is True:
-                pass
-            player *= -1
-    except KeyboardInterrupt:
-        print("NO CONTEST!!!")
-        exit()
-    print("Player", -1 * player, "Wins!")
+    elif __MODE == "FINAL_EXAM":
+        pass
 
 
 if __name__ == "__main__":
