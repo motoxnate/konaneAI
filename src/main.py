@@ -67,7 +67,7 @@ def main(tester=None, test_board=False, test_moves=False):
         try:
             while True:
                 """
-                Playing one game
+                Playing training games
 
                 Player 1 always has the more favorable heuristic settings
                 If player -1 wins, then player 1 gets player -1's settings and a new set of settings are generated for
