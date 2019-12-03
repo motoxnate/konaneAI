@@ -140,12 +140,12 @@ def alpha_beta_helper(board, player, heuristic_obj, depth, alpha=None, beta=None
         beta = -float("inf")
 
     if depth == 0:
-        return m * heuristic_obj.heuristic(board, player)
+        return m * heuristic_obj.heuristic(board, player * m)
 
     # Deriving new states
     moves = board.get_possible_moves(player)
     if len(moves) == 0:
-        return heuristic_obj.heuristic(board, player)
+        return m * heuristic_obj.heuristic(board, player * m)
     states = board.get_possible_resultant_states(player, moves)
 
     if m == 1:

@@ -19,7 +19,7 @@ class MinimaxProcess(Process):
     def run(self):
         try:
             self._status = "RUNNING"
-            self._return.value = minimax.alpha_beta_helper(self._board, self._player, self._heuristic, self._depth)
+            self._return.value = minimax.alpha_beta_helper(self._board, self._player, self._heuristic, self._depth, self._m)
         except KeyboardInterrupt:
             pass
         self._status = "FINISHED"
@@ -37,7 +37,7 @@ def parallel_minimax(board, player, heuristic_obj, depth, m=1):
         return heuristic_obj.heuristic(board, player), None
     states = board.get_possible_resultant_states(player, moves)
 
-    processes = [MinimaxProcess(state, player, heuristic_obj, depth - 1, m) for state in
+    processes = [MinimaxProcess(state, player, heuristic_obj, depth - 1, m * -1) for state in
                  states]
     [p.start() for p in processes]
     [p.join() for p in processes]
