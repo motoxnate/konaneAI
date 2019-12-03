@@ -89,7 +89,6 @@ class MCPDLearningHeuristic(Heuristic):
         constants = [self["mc1"], self["mc2"], self["pd1"], self["pd2"]]
         move_nums = [n, -n, n, -n]
         h = sum([move_nums[i] * constants[i] * heuristics[i] for i in range(len(heuristics))])
-        # print(h)
         return h
 
     def __str__(self):

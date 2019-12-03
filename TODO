@@ -31,3 +31,7 @@ Graphics Py for GUI
 Speed up
     Evaluate efficiency of helper functions
         Make sure most are constant time with only a few O(n)
+
+
+Meeting Notes:
+- Opponent Moves?
