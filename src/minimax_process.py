@@ -37,6 +37,11 @@ def parallel_minimax(board, player, heuristic_obj, depth, m=1):
         return heuristic_obj.heuristic(board, player), None
     states = board.get_possible_resultant_states(player, moves)
 
+    # Checking for knockout moves:
+    for i in range(len(states)):
+        if len(states[i].get_possible_moves(player * -1)) == 0:
+            return float("inf"), moves[i]
+
     processes = [MinimaxProcess(state, player, heuristic_obj, depth - 1, m * -1) for state in
                  states]
     [p.start() for p in processes]
