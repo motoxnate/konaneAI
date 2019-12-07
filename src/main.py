@@ -1,6 +1,8 @@
+import socket
+import time
+
 from src.board import Board
 from src.heuristic import *
-from minimax import minimax
 from src.minimax_process import parallel_minimax
 from graphics import *
 
@@ -18,6 +20,14 @@ FINAL_EXAM:
 Perform first and second moves
 Alternate getting moves and sending next move
 """
+
+HOST = "artemis.engr.uconn.edu"
+PORT = 4705
+USER = "tng_ai"
+PASS = "plaintext"
+OPPONENT = "other"
+DEPTH = 5
+SIZE = 18
 
 
 def do_game(heuristic_obj_1, heuristic_obj_2, depth=5, size=18, player=1, verbose=False):
@@ -98,72 +108,72 @@ def button_click(mouse, rectangle):
 def main(tester=None, test_board=False, test_moves=False):
     __MODE = get_mode()
 
-    """Setup for graphics window"""
-    main_window = GraphWin("AI Settings", 500, 400)
-    main_window.setBackground(color_rgb(210, 210, 210))
-
-    headline = Text(Point(250, 20), "AI Settings")
-    headline.setFace("arial")
-    headline.setSize(18)
-    headline.draw(main_window)
-
-    run_button = Rectangle(Point(400, 350), Point(480, 380))
-    run_button.setFill(color_rgb(161, 255, 165))
-    run_button.draw(main_window)
-    run_text = Text(Point(440, 365), "Run")
-    run_text.draw(main_window)
-
-    heuristic_label = Text(Point(60, 50), "Heuristic Mode: ")
-    heuristic_label.setSize(14)
-    heuristic_label.draw(main_window)
-    heuristic_outline = Rectangle(Point(120, 35), Point(320, 65))
-    heuristic_outline.setFill(color_rgb(255, 233, 161))
-    heuristic_outline.draw(main_window)
-    heuristic_stat = Text(Point(220, 50), __MODE)
-    heuristic_stat.setSize(14)
-    heuristic_stat.draw(main_window)
-
-    blue = color_rgb(161, 211, 255)
-    training_button = Rectangle(Point(20, 70), Point(150, 100))
-    training_button.setFill(blue)
-    training_button.draw(main_window)
-    training_text = Text(Point(85, 85), "Training")
-    training_text.setSize(14)
-    training_text.draw(main_window)
-
-    competition_button = Rectangle(Point(20, 150), Point(150, 180))
-    competition_button.setFill(blue)
-    competition_button.draw(main_window)
-    competition_text = Text(Point(85, 165), "Heuristic Competition")
-    competition_text.draw(main_window)
-
-    exam_button = Rectangle(Point(20, 230), Point(150, 260))
-    exam_button.setFill(blue)
-    exam_button.draw(main_window)
-    exam_text = Text(Point(85, 245), "Exam Mode")
-    exam_text.setSize(14)
-    exam_text.draw(main_window)
-
-    """Get mouse location and check buttons"""
-    while True:
-        mouse = main_window.getMouse()
-        print("click")
-
-        if button_click(mouse, run_button):
-            main_window.close()
-            break
-        elif button_click(mouse, training_button):
-            __MODE = "TRAINING"
-            set_mode(__MODE)
-            heuristic_stat.setText(__MODE)
-        elif button_click(mouse, competition_button):
-            __MODE = "HEURISTIC_COMPETITION"
-            set_mode(__MODE)
-            heuristic_stat.setText(__MODE)
-        elif button_click(mouse, exam_button):
-            __MODE = "FINAL_EXAM"
-            set_mode(__MODE)
-            heuristic_stat.setText(__MODE)
+    # """Setup for graphics window"""
+    # main_window = GraphWin("AI Settings", 500, 400)
+    # main_window.setBackground(color_rgb(210, 210, 210))
+    #
+    # headline = Text(Point(250, 20), "AI Settings")
+    # headline.setFace("arial")
+    # headline.setSize(18)
+    # headline.draw(main_window)
+    #
+    # run_button = Rectangle(Point(400, 350), Point(480, 380))
+    # run_button.setFill(color_rgb(161, 255, 165))
+    # run_button.draw(main_window)
+    # run_text = Text(Point(440, 365), "Run")
+    # run_text.draw(main_window)
+    #
+    # heuristic_label = Text(Point(60, 50), "Heuristic Mode: ")
+    # heuristic_label.setSize(14)
+    # heuristic_label.draw(main_window)
+    # heuristic_outline = Rectangle(Point(120, 35), Point(320, 65))
+    # heuristic_outline.setFill(color_rgb(255, 233, 161))
+    # heuristic_outline.draw(main_window)
+    # heuristic_stat = Text(Point(220, 50), __MODE)
+    # heuristic_stat.setSize(14)
+    # heuristic_stat.draw(main_window)
+    #
+    # blue = color_rgb(161, 211, 255)
+    # training_button = Rectangle(Point(20, 70), Point(150, 100))
+    # training_button.setFill(blue)
+    # training_button.draw(main_window)
+    # training_text = Text(Point(85, 85), "Training")
+    # training_text.setSize(14)
+    # training_text.draw(main_window)
+    #
+    # competition_button = Rectangle(Point(20, 150), Point(150, 180))
+    # competition_button.setFill(blue)
+    # competition_button.draw(main_window)
+    # competition_text = Text(Point(85, 165), "Heuristic Competition")
+    # competition_text.draw(main_window)
+    #
+    # exam_button = Rectangle(Point(20, 230), Point(150, 260))
+    # exam_button.setFill(blue)
+    # exam_button.draw(main_window)
+    # exam_text = Text(Point(85, 245), "Exam Mode")
+    # exam_text.setSize(14)
+    # exam_text.draw(main_window)
+    #
+    # """Get mouse location and check buttons"""
+    # while True:
+    #     mouse = main_window.getMouse()
+    #     print("click")
+    #
+    #     if button_click(mouse, run_button):
+    #         main_window.close()
+    #         break
+    #     elif button_click(mouse, training_button):
+    #         __MODE = "TRAINING"
+    #         set_mode(__MODE)
+    #         heuristic_stat.setText(__MODE)
+    #     elif button_click(mouse, competition_button):
+    #         __MODE = "HEURISTIC_COMPETITION"
+    #         set_mode(__MODE)
+    #         heuristic_stat.setText(__MODE)
+    #     elif button_click(mouse, exam_button):
+    #         __MODE = "FINAL_EXAM"
+    #         set_mode(__MODE)
+    #         heuristic_stat.setText(__MODE)
 
     """Begin Main"""
     if __MODE == "TRAINING":
@@ -217,10 +227,121 @@ def main(tester=None, test_board=False, test_moves=False):
         print(message)
 
     elif __MODE == "HUMAN_PLAYER":
+        # Should create an AI connected to the server and a graphics windows connected to the server that will play
+        # against the AI
         pass
+
+    elif __MODE == "SERVER_ONE_AI_PLAY":
+        # Two AIs will be created, connect to the server, and play against each other
+
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        except socket.error as err:
+            print("Socket error: %s" % str(err))
+            sys.exit(1)
+
+        try:
+            host_ip = socket.gethostbyname(HOST)
+        except socket.gaierror:
+            print("There was an error resolving the host")
+            sys.exit(1)
+
+        # connecting to the server
+        s.connect((host_ip, PORT))
+        version_message = get_message_from_socket(s)
+        print("Connected to server version %s" % version_message.split("v")[-1])
+
+        board = Board(size=SIZE)
+        ai = MoveCountHeuristic()
+        my_player = 0
+        game_num = -1
+
+        while True:
+            message = get_message_from_socket(s)
+            time.sleep(1)
+            print("message: " + str(message))
+
+            if message.startswith("?"):
+                # It is a request:
+                request = message[1:]
+                response = "NULL"
+
+                if request.startswith("Username"):
+                    send_response_to_socket(s, USER)
+
+                elif request.startswith("Password"):
+                    send_response_to_socket(s, PASS)
+
+                elif request.startswith("Opponent"):
+                    send_response_to_socket(s, OPPONENT)
+
+                elif request.startswith("Move"):
+                    h, move = parallel_minimax(board, my_player, ai, DEPTH)
+                    send_response_to_socket(s, my_move_to_server_move(move, SIZE))
+                else:
+                    print("Unknown request: " + str(request))
+
+                send_response_to_socket(s, response)
+            else:
+                if message.startswith("Move"):
+                    server_move = message[4:]
+                    my_move = server_move_to_my_move(server_move, SIZE)
+                    print("Move: " + str(my_move))
+                    board.do_move(my_move)
+                    board.print()
+
+                elif message.startswith("Removed"):
+                    server_move = message[7:]
+                    my_move = server_move_to_my_move(server_move, SIZE)
+                    print("Initial Move: " + str(my_move))
+                    board.do_move(my_move)
+
+                elif message.startswith("Player:"):
+                    print("I won the coin toss" if message[7:] == "1" else "I lost the coin toss")
+
+                elif message.startswith("Color:"):
+                    my_player = 1 if message[6:] == "BLACK" else -1
+                    print("My player is " + str(my_player))
+
+                elif message.startswith("Game:"):
+                    game_num = message[4:]
+
+                elif message.startswith("Opponent wins!") or message.startswith("You win!") or message.startswith("Error"):
+                    print(message)
+                    break
+                else:
+                    print("Unknown message: " + str(message))
+
+        s.close()
 
     elif __MODE == "FINAL_EXAM":
         pass
+
+    else:
+        print("Invalid mode: %s" % __MODE)
+
+
+def get_message_from_socket(s):
+    m = str(s.recv(1024).decode("ascii"))
+    return m[0:-1]
+
+
+def send_response_to_socket(s, message):
+    s.send((message + "\r\n").encode("ascii"))
+
+
+def server_move_to_my_move(server_move, size):
+    point_strs = server_move.strip("][").split(":")
+    point_vals = [int(s) for s in point_strs]
+    if len(point_vals) == 2:
+        return (size - point_vals[0] - 1, point_vals[1]), None
+    return (size - point_vals[0] - 1, point_vals[1]), (size - point_vals[2] - 1, point_vals[3])
+
+
+def my_move_to_server_move(my_move, size):
+    if my_move[1] is None:
+        return "[%d:%d]" % (size - my_move[0][0] - 1, my_move[0][1])
+    return "[%d:%d]:[%d:%d]" % (size - my_move[0][0] - 1, my_move[0][1], size - my_move[1][0] - 1, my_move[1][1])
 
 
 if __name__ == "__main__":
