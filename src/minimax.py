@@ -1,6 +1,3 @@
-from minimax_process import minimax
-
-
 def minimax(board, player, heuristic_obj, depth, m=1):
     """
     Basic minimax algorithm for Konane
