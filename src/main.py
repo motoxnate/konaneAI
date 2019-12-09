@@ -45,8 +45,13 @@ def main(tester=None, test_board=False, test_moves=False):
                 Player 1 always has the more favorable heuristic settings
                 If player -1 wins, then player 1 gets player -1's settings and a new set of settings are generated for
                 player -1.
+                
+                Randomness setting in learning heuristic may be:
+                False: Not random
+                UNIFORM: Uses a uniform distribution
+                NORMAL: Uses a normal distribution
                 """
-                learning_heuristic2 = MCPDLearningHeuristic(always_random=True)
+                learning_heuristic2 = MCPDLearningHeuristic(randomness="NORMAL")
                 print("Player 1: %s\nPlayer -1: %s" % (str(learning_heuristic1), str(learning_heuristic2)))
                 starting_player = -1 if session_number % 2 == 0 else 1
                 cur = time.time()

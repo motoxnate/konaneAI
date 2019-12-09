@@ -1,15 +1,23 @@
 import os
 import random
+from scipy.stats import truncnorm
 
 
 class Heuristic:
 
     __CONST_FOLDER = "../const"
 
-    def __init__(self, randomized_constraints=[], always_random=False):
+    def __init__(self, randomized_constraints=[], randomness=False):
         self._constraints = {}
-        if os.path.isfile(self.get_file_name()) and not always_random:
+        if os.path.isfile(self.get_file_name()) and not randomness:
             self.load_constants_from_file()
+        elif randomness == "NORMAL":
+            self.load_constants_from_file(static=True)
+            for key in randomized_constraints:
+                """Normal distribution centered on mu, with sigma std deviation
+                mu = current parameter, so we focus more on heuristics we know are better."""
+                gen = self.get_truncated_normal(self, mean=self._constraints[key], sd=0.2, low=0, upp=1)
+                self._constraints[key] = gen.rvs()
         else:
             rand = random.Random()
             for key in randomized_constraints:
@@ -18,13 +26,21 @@ class Heuristic:
     def heuristic(self, board, player):
         return 0
 
+    @staticmethod
+    def get_truncated_normal(self, mean=0, sd=1, low=0, upp=10):
+        return truncnorm(
+            (low - mean) / sd, (upp - mean) / sd, loc=mean, scale=sd)
+
     def get_file_name(self):
         return os.path.join(Heuristic.__CONST_FOLDER, self.__class__.__name__ + ".const")
 
-    def load_constants_from_file(self):
-        lines = []
-        with open(self.get_file_name(), "r") as file:
-            lines = file.readlines()
+    def load_constants_from_file(self, static=False):
+        if static:
+            with open("../const/MCPDLearningHeuristic.const", "r") as file:
+                lines = file.readlines()
+        else:
+            with open(self.get_file_name(), "r") as file:
+                lines = file.readlines()
         for line in lines:
             no_space_line = "".join(line.split(" "))
             values = no_space_line.split("=")
@@ -75,10 +91,11 @@ class PieceDifferenceHeuristic(Heuristic):
 
 class MCPDLearningHeuristic(Heuristic):
 
-    def __init__(self, always_random=False):
-        super(MCPDLearningHeuristic, self).__init__(randomized_constraints=["mc1", "mc2", "pd1", "pd2"], always_random=always_random)
-        self.move_count_h = MoveCountHeuristic()
-        self.piece_diff_h = PieceDifferenceHeuristic()
+    def __init__(self, randomness=False):
+        super(MCPDLearningHeuristic, self).__init__(randomized_constraints=["mc1", "mc2", "pd1", "pd2"], randomness=randomness)
+        print("Test:", randomness)
+        self.move_count_h = MoveCountHeuristic(randomness=randomness)
+        self.piece_diff_h = PieceDifferenceHeuristic(randomness=randomness)
 
     def heuristic(self, board, player):
         n = board.get_move_number()
