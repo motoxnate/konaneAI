@@ -51,12 +51,12 @@ def main(tester=None, test_board=False, test_moves=False):
                 UNIFORM: Uses a uniform distribution
                 NORMAL: Uses a normal distribution
                 """
-                learning_heuristic2 = MCPDLearningHeuristic(randomness="NORMAL")
+                learning_heuristic2 = MCPDLearningHeuristic(randomness="UNIFORM")
                 print("Player 1: %s\nPlayer -1: %s" % (str(learning_heuristic1), str(learning_heuristic2)))
                 starting_player = -1 if session_number % 2 == 0 else 1
                 cur = time.time()
 
-                winner, move_count = do_game(learning_heuristic1, learning_heuristic2, depth=80, size=10, player=starting_player, verbose=False)
+                winner, move_count = do_game(learning_heuristic1, learning_heuristic2, depth=20, size=18, player=starting_player, verbose=False)
                 print("\nPlayer %d won in %d turns in %d seconds" % (winner, move_count, time.time() - cur))
 
                 # Checking to see who won, setting the winning value to the first slot, and saving it.
