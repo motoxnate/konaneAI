@@ -63,7 +63,6 @@ class Heuristic:
         try:
             for y in range(i-1):
                 while lines[x] == lines[x - 1]:
-                    print("loop", y)
                     x -= 1
                 x -= 1
 

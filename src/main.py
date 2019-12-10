@@ -29,8 +29,8 @@ OPPONENT = "other"
 DEPTH = 5
 SIZE = 18
 
-TRAINING_SIZE = 10
-TRAINING_DEPTH = 3
+TRAINING_SIZE = 18
+TRAINING_DEPTH = 5
 
 
 def main(tester=None, test_board=False, test_moves=False):
