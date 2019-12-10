@@ -29,6 +29,9 @@ OPPONENT = "other"
 DEPTH = 5
 SIZE = 18
 
+TRAINING_SIZE = 10
+TRAINING_DEPTH = 3
+
 
 def main(tester=None, test_board=False, test_moves=False):
     __MODE = "TRAINING"
@@ -56,14 +59,55 @@ def main(tester=None, test_board=False, test_moves=False):
                 starting_player = -1 if session_number % 2 == 0 else 1
                 cur = time.time()
 
-                winner, move_count = do_game(learning_heuristic1, learning_heuristic2, depth=20, size=18, player=starting_player, verbose=False)
+                winner, move_count = do_game(learning_heuristic1, learning_heuristic2, depth=TRAINING_DEPTH, size=TRAINING_SIZE, player=starting_player, verbose=False)
                 print("\nPlayer %d won in %d turns in %d seconds" % (winner, move_count, time.time() - cur))
 
                 # Checking to see who won, setting the winning value to the first slot, and saving it.
                 if winner == -1:
-                    print("=========> New settings: %s <=========" % str(learning_heuristic2))
-                    learning_heuristic1 = learning_heuristic2
-                    learning_heuristic1.save_constants_to_file()
+                    """Try to play previous two heuristics for verification"""
+                    # Play second game
+                    restore_heuristic = learning_heuristic1     # Save for restoration
+                    try:
+                        learning_heuristic1 = MCPDLearningHeuristic(randomness="2")
+                        print("Playing 2nd heuristic...")
+                        print("    Player 1: %s\n    Player -1: %s" % (str(learning_heuristic1), str(learning_heuristic2)))
+                        starting_player = -1 if session_number % 2 == 0 else 1
+                        cur = time.time()
+
+                        winner, move_count = do_game(learning_heuristic1, learning_heuristic2, depth=TRAINING_DEPTH, size=TRAINING_SIZE,
+                                                     player=starting_player, verbose=False)
+                    except ValueError:
+                        winner = -1
+                        move_count = 0
+                        cur = time.time()
+                    print("\nPlayer %d won in %d turns in %d seconds" % (winner, move_count, time.time() - cur))
+                    if winner == -1:
+                        # Play third game
+                        try:
+                            learning_heuristic1 = MCPDLearningHeuristic(randomness="3")
+                            print("Playing 3rd heuristic...")
+                            print("    Player 1: %s\n    Player -1: %s" % (
+                            str(learning_heuristic1), str(learning_heuristic2)))
+                            starting_player = -1 if session_number % 2 == 0 else 1
+                            cur = time.time()
+
+                            winner, move_count = do_game(learning_heuristic1, learning_heuristic2, depth=TRAINING_DEPTH, size=TRAINING_SIZE,
+                                                         player=starting_player, verbose=False)
+                        except ValueError:
+                            winner = -1
+                            move_count = 0
+                            cur = time.time()
+                        print("\nPlayer %d won in %d turns in %d seconds" % (winner, move_count, time.time() - cur))
+                        if winner == -1:
+                            print("=========> New settings: %s <=========" % str(learning_heuristic2))
+                            learning_heuristic1 = learning_heuristic2
+                            learning_heuristic1.save_constants_to_file()
+                            learning_heuristic1.save_data_point()
+                        else:
+                            learning_heuristic1 = restore_heuristic
+                    else:
+                        learning_heuristic1 = restore_heuristic
+                        learning_heuristic1.save_data_point()
                 else:
                     learning_heuristic1.save_data_point()
                 session_number += 1
