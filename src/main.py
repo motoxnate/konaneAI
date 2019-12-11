@@ -1,10 +1,17 @@
 import socket
-import time
-
-from src.board import Board
-from src.heuristic import *
-from src.minimax_process import parallel_minimax
+import argparse
 from graphics import *
+
+try:
+    from src.board import Board
+    from src.heuristic import *
+    from src.minimax_process import parallel_minimax
+except Exception:
+    from board import Board
+    from heuristic import *
+    from minimax_process import parallel_minimax
+
+
 
 
 """
@@ -23,9 +30,9 @@ Alternate getting moves and sending next move
 
 HOST = "artemis.engr.uconn.edu"
 PORT = 4705
-USER = "tng_ai"
-PASS = "plaintext"
-OPPONENT = "other"
+USER = "69420"
+PASS = "69420"
+OPPONENT = "42069"
 DEPTH = 5
 SIZE = 18
 
@@ -34,7 +41,7 @@ TRAINING_DEPTH = 5
 
 
 def main(tester=None, test_board=False, test_moves=False):
-    __MODE = "TRAINING"
+    __MODE = "SERVER_ONE_AI_PLAY"
     """Begin Main"""
     if __MODE == "TRAINING":
         learning_heuristic1 = MCPDLearningHeuristic()
@@ -162,61 +169,77 @@ def main(tester=None, test_board=False, test_moves=False):
         my_player = 0
         game_num = -1
 
+        last_response = None
         while True:
             message = get_message_from_socket(s)
-            time.sleep(1)
-            print("message: " + str(message))
+            time.sleep(0.01)
+            messages = message.split('\n')
+            print("message: ", messages)
 
-            if message.startswith("?"):
-                # It is a request:
-                request = message[1:]
-                response = "NULL"
+            for message in messages:
+                if "?" in message:
+                    # It is a request:
+                    request = message[message.index("?")+1:]
+                    response = "NULL"
 
-                if request.startswith("Username"):
-                    send_response_to_socket(s, USER)
+                    if request.startswith("Username"):
+                        send_response_to_socket(s, USER)
+                        response = USER
 
-                elif request.startswith("Password"):
-                    send_response_to_socket(s, PASS)
+                    elif request.startswith("Password"):
+                        send_response_to_socket(s, PASS)
+                        response = PASS
 
-                elif request.startswith("Opponent"):
-                    send_response_to_socket(s, OPPONENT)
+                    elif request.startswith("Opponent"):
+                        send_response_to_socket(s, OPPONENT)
+                        response = OPPONENT
 
-                elif request.startswith("Move"):
-                    h, move = parallel_minimax(board, my_player, ai, DEPTH)
-                    send_response_to_socket(s, my_move_to_server_move(move, SIZE))
+                    elif request.startswith("Move") or request.startswith("Remove"):
+                        if "(" in message:
+                            remaining_time = message[message.index("(")+1 : message.index(")")]
+                            remaining_time = int(remaining_time)/1000
+                            print("Time Left:", remaining_time)
+                        h, move = parallel_minimax(board, my_player, ai, DEPTH)
+                        response = my_move_to_server_move(move, SIZE)
+                        print(response)
+                        send_response_to_socket(s, response)
+                    else:
+                        print("Unknown request: " + str(request))
+
+                    last_response = response
+                    print("response:", response)
                 else:
-                    print("Unknown request: " + str(request))
+                    if message.startswith("Move"):
+                        server_move = message[4:]
+                        my_move = server_move_to_my_move(server_move, SIZE)
+                        print("Move: " + str(my_move))
+                        board.do_move(my_move)
+                        board.print()
 
-                send_response_to_socket(s, response)
-            else:
-                if message.startswith("Move"):
-                    server_move = message[4:]
-                    my_move = server_move_to_my_move(server_move, SIZE)
-                    print("Move: " + str(my_move))
-                    board.do_move(my_move)
-                    board.print()
+                    elif message.startswith("Removed"):
+                        server_move = str(message[8:])
+                        my_move = server_move_to_my_move(server_move, SIZE)
+                        print("Initial Move: " + str(my_move))
+                        board.do_move(my_move)
 
-                elif message.startswith("Removed"):
-                    server_move = message[7:]
-                    my_move = server_move_to_my_move(server_move, SIZE)
-                    print("Initial Move: " + str(my_move))
-                    board.do_move(my_move)
+                    elif message.startswith("Player:"):
+                        print("I won the coin toss" if message[7:] == "1" else "I lost the coin toss")
 
-                elif message.startswith("Player:"):
-                    print("I won the coin toss" if message[7:] == "1" else "I lost the coin toss")
+                    elif message.startswith("Color:"):
+                        my_player = 1 if message[6:] == "BLACK" else -1
+                        print("My player is " + str(my_player))
 
-                elif message.startswith("Color:"):
-                    my_player = 1 if message[6:] == "BLACK" else -1
-                    print("My player is " + str(my_player))
+                    elif message.startswith("Game:"):
+                        game_num = message[4:]
 
-                elif message.startswith("Game:"):
-                    game_num = message[4:]
-
-                elif message.startswith("Opponent wins!") or message.startswith("You win!") or message.startswith("Error"):
-                    print(message)
-                    break
-                else:
-                    print("Unknown message: " + str(message))
+                    elif message.startswith("Opponent wins!") or message.startswith("You win!") or message.startswith("Error"):
+                        print(message)
+                        break
+                    elif message.startswith("Error"):
+                        print(message)
+                        raise ValueError(last_response)
+                    else:
+                        print("Unknown message: " + str(message))
 
         s.close()
 
@@ -284,16 +307,20 @@ def do_games(game_number, heuristic_obj_1, heuristic_obj_2, depth=5, size=18, ve
 
 
 def get_message_from_socket(s):
-    m = str(s.recv(1024).decode("ascii"))
+    m = str(s.recv(1024).decode("ASCII"))
     return m[0:-1]
 
 
 def send_response_to_socket(s, message):
-    s.send((message + "\r\n").encode("ascii"))
+    try:
+        s.send((message + "\r\n").encode("ASCII"))
+    except BrokenPipeError as e:
+        print("Server closed connection")
+        raise e
 
 
 def server_move_to_my_move(server_move, size):
-    point_strs = server_move.strip("][").split(":")
+    point_strs = server_move.replace("[", "").replace("]", "").split(":")
     point_vals = [int(s) for s in point_strs]
     if len(point_vals) == 2:
         return (size - point_vals[0] - 1, point_vals[1]), None
@@ -394,5 +421,16 @@ def button_click(mouse, rectangle):
     lr = rectangle.getP2()
     return (ul.getX() < mouse.getX() < lr.getX()) and (ul.getY() < mouse.getY() < lr.getY())
 
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-username", "-u", type=str, help="Username")
+    parser.add_argument("-opponent", "-o", type=str, help="Opponent")
+    args = parser.parse_args()
+    if args.username:
+        print("Username:", args.username)
+        USER = PASS = args.username
+    if args.opponent:
+        print("Opponent:", args.opponent)
+        OPPONENT = args.opponent
     main()

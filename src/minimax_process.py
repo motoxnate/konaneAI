@@ -1,4 +1,3 @@
-
 from multiprocessing import Process, Value
 
 import minimax
@@ -22,6 +21,7 @@ class MinimaxProcess(Process):
             self._return.value = minimax.alpha_beta_helper(self._board, self._player, self._heuristic, self._depth, self._m)
         except KeyboardInterrupt:
             pass
+
         self._status = "FINISHED"
 
     def get_status(self):
@@ -46,6 +46,7 @@ def parallel_minimax(board, player, heuristic_obj, depth, m=1):
                  states]
     [p.start() for p in processes]
     [p.join() for p in processes]
+    [p.close() for p in processes]
     weighted_moves = [(processes[i].get_return_value(), moves[i]) for i in range(len(moves))]
 
     # Finding the min or max weight
