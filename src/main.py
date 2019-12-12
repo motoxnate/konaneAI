@@ -14,8 +14,6 @@ except ModuleNotFoundError:
     from minimax_process import parallel_minimax, parallel_minimax_pool
 
 
-
-
 """
 Operational Modes
 
@@ -45,7 +43,7 @@ TRAINING_DEPTH = 5
 
 
 def main(tester=None, test_board=False, test_moves=False):
-    __MODE = "SERVER_TRAINING"
+    __MODE = "TRAINING"
     """Begin Main"""
     if __MODE == "TRAINING":
         learning_heuristic1 = MCPDLearningHeuristic()

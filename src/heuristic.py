@@ -123,7 +123,7 @@ class MCPDLearningHeuristic(Heuristic):
 
         heuristics = [move_count, move_count, piece_diff, piece_diff]
         constants = [self["mc1"], self["mc2"], self["pd1"], self["pd2"]]
-        move_nums = [n, -n, n, -n]
+        move_nums = [1, 1, 1, 1 ]# [n, -n, n, -n]
         h = sum([move_nums[i] * constants[i] * heuristics[i] for i in range(len(heuristics))])
         return h
 
