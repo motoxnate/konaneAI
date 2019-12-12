@@ -7,35 +7,44 @@ class Heuristic:
 
     __CONST_FOLDER = "../const"
 
+    __UNIFORM_LOWER = 0
+    __UNIFORM_UPPER = 1
+
+    __NORM_MEAN = 0.5
+    __NORM_SD = 0.2
+    __NORM_LOWER = 0
+    __NORM_UPPER = 1
+
     def __init__(self, randomized_constraints=[], randomness=False):
+        """
+        Constructor to initialize a new heuristic
+        :param randomized_constraints: a list of keys to use as heuristic state values
+        :param randomness: False by default and to use constraints loaded from file, NORMAL to randomize constraints
+        using a normal distribution. UNIFORM to use uniformly random constraints
+        """
         self._constraints = {}
-        if os.path.isfile(self.get_file_name()) and not randomness:
+        if os.path.isfile(self.get_file_name()):
             self.load_constants_from_file()
-        elif randomness == "NORMAL":
-            self.load_constants_from_file(static=True)
+
+        if randomness == "NORMAL":
             for key in randomized_constraints:
                 """Normal distribution centered on mu, with sigma std deviation
                 mu = current parameter, so we focus more on heuristics we know are better."""
-                gen = self.get_truncated_normal(self, mean=self._constraints[key], sd=0.2, low=0, upp=1)
-                self._constraints[key] = gen.rvs()
-        elif randomness == "2":
-            if not self.load_previous_constants(2):
-                raise ValueError
-        elif randomness == "3":
-            if not self.load_previous_constants(3):
-                raise ValueError
+                self[key] = Heuristic.get_truncated_normal()
         elif randomness == "UNIFORM":
             rand = random.Random()
             for key in randomized_constraints:
-                self._constraints[key] = rand.uniform(0, 1)
-        else:
-            pass
+                self[key] = rand.uniform(Heuristic.__UNIFORM_LOWER, Heuristic.__UNIFORM_UPPER)
 
     def heuristic(self, board, player):
         return 0
 
     @staticmethod
-    def get_truncated_normal(self, mean=0, sd=1, low=0, upp=10):
+    def get_truncated_normal(mean=None, sd=None, low=None, upp=None):
+        mean = Heuristic.__NORM_MEAN if mean is None else mean
+        sd = Heuristic.__NORM_SD if sd is None else sd
+        low = Heuristic.__NORM_LOWER if low is None else low
+        upp = Heuristic.__NORM_UPPER if upp is None else upp
         return truncnorm(
             (low - mean) / sd, (upp - mean) / sd, loc=mean, scale=sd)
 
@@ -44,7 +53,7 @@ class Heuristic:
 
     def load_constants_from_file(self, static=False):
         if static:
-            with open("../const/MCPDLearningHeuristic.const", "r") as file:
+            with open(static, "r") as file:
                 lines = file.readlines()
         else:
             with open(self.get_file_name(), "r") as file:
@@ -53,29 +62,6 @@ class Heuristic:
             no_space_line = "".join(line.split(" "))
             values = no_space_line.split("=")
             self._constraints[values[0]] = float(values[1])
-
-    def load_previous_constants(self, i):
-        with open("../const/MCPDLearningHeuristic.const.csv", "r") as file:
-            lines = file.readlines()
-        x = -1
-        """Starting at lines[-1], check if the last two are the same. 
-        If i = 3, then must look for the previous again."""
-        try:
-            for y in range(i-1):
-                while lines[x] == lines[x - 1]:
-                    x -= 1
-                x -= 1
-
-            line = lines[x]
-            line = line.split(',')
-            self._constraints["mc1"] = float(line[0])
-            self._constraints["mc2"] = float(line[1])
-            self._constraints["pd1"] = float(line[2])
-            self._constraints["pd2"] = float(line[3])
-            return True
-
-        except IndexError:
-            return False
 
     def save_constants_to_file(self):
         lines = ["%s=%f\n" % (key, self._constraints[key]) for key in self._constraints.keys()]
@@ -107,6 +93,9 @@ class Heuristic:
     def __iter__(self):
         return iter(self._constraints.keys())
 
+    def __str__(self):
+        return "%s with constraints %s" % (self.__class__.__name__, str(self._constraints))
+
 
 class MoveCountHeuristic(Heuristic):
 
@@ -124,7 +113,6 @@ class MCPDLearningHeuristic(Heuristic):
 
     def __init__(self, randomness=False):
         super(MCPDLearningHeuristic, self).__init__(randomized_constraints=["mc1", "mc2", "pd1", "pd2"], randomness=randomness)
-        print("Test:", randomness)
         self.move_count_h = MoveCountHeuristic()
         self.piece_diff_h = PieceDifferenceHeuristic()
 
@@ -139,5 +127,5 @@ class MCPDLearningHeuristic(Heuristic):
         h = sum([move_nums[i] * constants[i] * heuristics[i] for i in range(len(heuristics))])
         return h
 
-    def __str__(self):
-        return " ".join(["%s=%f" % (key, self[key]) for key in self._constraints.keys()])
+    # def __str__(self):
+    #     return " ".join(["%s=%f" % (key, self[key]) for key in self._constraints.keys()])

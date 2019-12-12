@@ -5,6 +5,8 @@ import minimax
 
 class MinimaxProcess(Process):
 
+    MAX_PROCESSES = 8
+
     def __init__(self, board, player, heuristic, depth, m):
         super(MinimaxProcess, self).__init__()
         self._board = board
@@ -44,9 +46,15 @@ def parallel_minimax(board, player, heuristic_obj, depth, m=1):
 
     processes = [MinimaxProcess(state, player, heuristic_obj, depth - 1, m * -1) for state in
                  states]
-    [p.start() for p in processes]
-    [p.join() for p in processes]
-    [p.close() for p in processes]
+
+    # Dividing into groups so we don't have too many processes running at once!
+    m = MinimaxProcess.MAX_PROCESSES
+    process_groups = [processes[i * m: (i+1) * m] for i in range(int(len(processes) / m) + 1)]
+    for group in process_groups:
+        [p.start() for p in group]
+        [p.join() for p in group]
+    print(len(processes), [len(group) for group in process_groups])
+
     weighted_moves = [(processes[i].get_return_value(), moves[i]) for i in range(len(moves))]
 
     # Finding the min or max weight

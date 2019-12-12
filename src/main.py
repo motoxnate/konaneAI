@@ -6,7 +6,7 @@ try:
     from src.board import Board
     from src.heuristic import *
     from src.minimax_process import parallel_minimax
-except Exception:
+except ModuleNotFoundError:
     from board import Board
     from heuristic import *
     from minimax_process import parallel_minimax
@@ -30,6 +30,8 @@ Alternate getting moves and sending next move
 
 HOST = "artemis.engr.uconn.edu"
 PORT = 4705
+ENCODING = "ASCII"
+
 USER = "69420"
 PASS = "69420"
 OPPONENT = "42069"
@@ -55,7 +57,7 @@ def main(tester=None, test_board=False, test_moves=False):
                 Player 1 always has the more favorable heuristic settings
                 If player -1 wins, then player 1 gets player -1's settings and a new set of settings are generated for
                 player -1.
-                
+
                 Randomness setting in learning heuristic may be:
                 False: Not random
                 UNIFORM: Uses a uniform distribution
@@ -66,60 +68,20 @@ def main(tester=None, test_board=False, test_moves=False):
                 starting_player = -1 if session_number % 2 == 0 else 1
                 cur = time.time()
 
-                winner, move_count = do_game(learning_heuristic1, learning_heuristic2, depth=TRAINING_DEPTH, size=TRAINING_SIZE, player=starting_player, verbose=False)
+                winner, move_count = do_game(learning_heuristic1, learning_heuristic2, depth=20, size=18,
+                                             player=starting_player, verbose=False)
                 print("\nPlayer %d won in %d turns in %d seconds" % (winner, move_count, time.time() - cur))
 
                 # Checking to see who won, setting the winning value to the first slot, and saving it.
                 if winner == -1:
-                    """Try to play previous two heuristics for verification"""
-                    # Play second game
-                    restore_heuristic = learning_heuristic1     # Save for restoration
-                    try:
-                        learning_heuristic1 = MCPDLearningHeuristic(randomness="2")
-                        print("Playing 2nd heuristic...")
-                        print("    Player 1: %s\n    Player -1: %s" % (str(learning_heuristic1), str(learning_heuristic2)))
-                        starting_player = -1 if session_number % 2 == 0 else 1
-                        cur = time.time()
-
-                        winner, move_count = do_game(learning_heuristic1, learning_heuristic2, depth=TRAINING_DEPTH, size=TRAINING_SIZE,
-                                                     player=starting_player, verbose=False)
-                    except ValueError:
-                        winner = -1
-                        move_count = 0
-                        cur = time.time()
-                    print("\nPlayer %d won in %d turns in %d seconds" % (winner, move_count, time.time() - cur))
-                    if winner == -1:
-                        # Play third game
-                        try:
-                            learning_heuristic1 = MCPDLearningHeuristic(randomness="3")
-                            print("Playing 3rd heuristic...")
-                            print("    Player 1: %s\n    Player -1: %s" % (
-                            str(learning_heuristic1), str(learning_heuristic2)))
-                            starting_player = -1 if session_number % 2 == 0 else 1
-                            cur = time.time()
-
-                            winner, move_count = do_game(learning_heuristic1, learning_heuristic2, depth=TRAINING_DEPTH, size=TRAINING_SIZE,
-                                                         player=starting_player, verbose=False)
-                        except ValueError:
-                            winner = -1
-                            move_count = 0
-                            cur = time.time()
-                        print("\nPlayer %d won in %d turns in %d seconds" % (winner, move_count, time.time() - cur))
-                        if winner == -1:
-                            print("=========> New settings: %s <=========" % str(learning_heuristic2))
-                            learning_heuristic1 = learning_heuristic2
-                            learning_heuristic1.save_constants_to_file()
-                            learning_heuristic1.save_data_point()
-                        else:
-                            learning_heuristic1 = restore_heuristic
-                    else:
-                        learning_heuristic1 = restore_heuristic
-                        learning_heuristic1.save_data_point()
+                    print("=========> New settings: %s <=========" % str(learning_heuristic2))
+                    learning_heuristic1 = learning_heuristic2
+                    learning_heuristic1.save_constants_to_file()
                 else:
                     learning_heuristic1.save_data_point()
                 session_number += 1
                 print("Session %d complete\n" % session_number)
-                # input("")
+
         except KeyboardInterrupt:
             print("\nNormal Exit, %d training sessions run." % session_number)
     elif __MODE == "HEURISTIC_COMPETITION":
@@ -130,6 +92,7 @@ def main(tester=None, test_board=False, test_moves=False):
         total_games = 5
 
         wins1, wins2, total_turns = do_games(total_games, h1, h2, depth=5, size=18)
+
         message = """
         
         Heuristic Competition Finished!
@@ -165,12 +128,14 @@ def main(tester=None, test_board=False, test_moves=False):
         print("Connected to server version %s" % version_message.split("v")[-1])
 
         board = Board(size=SIZE)
-        ai = MoveCountHeuristic()
+        ai = MCPDLearningHeuristic()
         my_player = 0
         game_num = -1
+        winner = 0
+        print("Using AI:", str(ai))
 
         last_response = None
-        while True:
+        while winner == 0:
             message = get_message_from_socket(s)
             time.sleep(0.01)
             messages = message.split('\n')
@@ -180,18 +145,14 @@ def main(tester=None, test_board=False, test_moves=False):
                 if "?" in message:
                     # It is a request:
                     request = message[message.index("?")+1:]
-                    response = "NULL"
 
                     if request.startswith("Username"):
-                        send_response_to_socket(s, USER)
                         response = USER
 
                     elif request.startswith("Password"):
-                        send_response_to_socket(s, PASS)
                         response = PASS
 
                     elif request.startswith("Opponent"):
-                        send_response_to_socket(s, OPPONENT)
                         response = OPPONENT
 
                     elif request.startswith("Move") or request.startswith("Remove"):
@@ -199,27 +160,28 @@ def main(tester=None, test_board=False, test_moves=False):
                             remaining_time = message[message.index("(")+1 : message.index(")")]
                             remaining_time = int(remaining_time)/1000
                             print("Time Left:", remaining_time)
+
                         h, move = parallel_minimax(board, my_player, ai, DEPTH)
                         response = my_move_to_server_move(move, SIZE)
-                        print(response)
-                        send_response_to_socket(s, response)
                     else:
                         print("Unknown request: " + str(request))
+                        continue
 
+                    send_response_to_socket(s, response)
                     last_response = response
                     print("response:", response)
                 else:
                     if message.startswith("Move"):
                         server_move = message[4:]
                         my_move = server_move_to_my_move(server_move, SIZE)
-                        print("Move: " + str(my_move))
+                        print("Doing Move: " + str(my_move))
                         board.do_move(my_move)
                         board.print()
 
                     elif message.startswith("Removed"):
                         server_move = str(message[8:])
                         my_move = server_move_to_my_move(server_move, SIZE)
-                        print("Initial Move: " + str(my_move))
+                        print("Doing Initial Move: " + str(my_move))
                         board.do_move(my_move)
 
                     elif message.startswith("Player:"):
@@ -230,17 +192,18 @@ def main(tester=None, test_board=False, test_moves=False):
                         print("My player is " + str(my_player))
 
                     elif message.startswith("Game:"):
-                        game_num = message[4:]
+                        game_num = message[5:]
+                        print("Game Number:", game_num)
 
-                    elif message.startswith("Opponent wins!") or message.startswith("You win!") or message.startswith("Error"):
+                    elif message.startswith("Opponent wins!") or message.startswith("You win!"):
                         print(message)
+                        winner = my_player if message.startswith("You") else -my_player
                         break
                     elif message.startswith("Error"):
                         print(message)
                         raise ValueError(last_response)
                     else:
                         print("Unknown message: " + str(message))
-
         s.close()
 
     elif __MODE == "FINAL_EXAM":
@@ -307,13 +270,13 @@ def do_games(game_number, heuristic_obj_1, heuristic_obj_2, depth=5, size=18, ve
 
 
 def get_message_from_socket(s):
-    m = str(s.recv(1024).decode("ASCII"))
+    m = str(s.recv(1024).decode(ENCODING))
     return m[0:-1]
 
 
 def send_response_to_socket(s, message):
     try:
-        s.send((message + "\r\n").encode("ASCII"))
+        s.send((message + "\r\n").encode(ENCODING))
     except BrokenPipeError as e:
         print("Server closed connection")
         raise e
