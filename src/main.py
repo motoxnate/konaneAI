@@ -43,7 +43,7 @@ TRAINING_DEPTH = 5
 
 
 def main(tester=None, test_board=False, test_moves=False):
-    __MODE = "SERVER_ONE_AI_PLAY"
+    __MODE = "TRAINING"
     """Begin Main"""
     if __MODE == "TRAINING":
         learning_heuristic1 = MCPDLearningHeuristic()
@@ -107,9 +107,11 @@ def main(tester=None, test_board=False, test_moves=False):
         # against the AI
         pass
 
-    elif __MODE == "SERVER_ONE_AI_PLAY":
-        # Two AIs will be created, connect to the server, and play against each other
+    elif __MODE == "SERVER_TRAINING":
+        # Same as regular training except works with the server to catch any errors we may be having with the server
+        pass
 
+    elif __MODE == "SERVER_ONE_AI_PLAY":
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         except socket.error as err:
@@ -207,7 +209,101 @@ def main(tester=None, test_board=False, test_moves=False):
         s.close()
 
     elif __MODE == "FINAL_EXAM":
-        pass
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        except socket.error as err:
+            print("Socket error: %s" % str(err))
+            sys.exit(1)
+
+        try:
+            host_ip = socket.gethostbyname(HOST)
+        except socket.gaierror:
+            print("There was an error resolving the host")
+            sys.exit(1)
+
+        # connecting to the server
+        s.connect((host_ip, PORT))
+        version_message = get_message_from_socket(s)
+        print("Connected to server version %s" % version_message.split("v")[-1])
+
+        board = Board(size=SIZE)
+        ai = MCPDLearningHeuristic()
+        my_player = 0
+        game_num = -1
+        winner = 0
+        print("Using AI:", str(ai))
+
+        last_response = None
+        while winner == 0:
+            message = get_message_from_socket(s)
+            time.sleep(0.01)
+            messages = message.split('\n')
+            print("message: ", messages)
+
+            for message in messages:
+                if "?" in message:
+                    # It is a request:
+                    request = message[message.index("?")+1:]
+
+                    if request.startswith("Username"):
+                        response = USER
+
+                    elif request.startswith("Password"):
+                        response = PASS
+
+                    elif request.startswith("Opponent"):
+                        response = OPPONENT
+
+                    elif request.startswith("Move") or request.startswith("Remove"):
+                        if "(" in message:
+                            remaining_time = message[message.index("(")+1 : message.index(")")]
+                            remaining_time = int(remaining_time)/1000
+                            print("Time Left:", remaining_time)
+
+                        h, move = parallel_minimax(board, my_player, ai, DEPTH)
+                        response = my_move_to_server_move(move, SIZE)
+                    else:
+                        print("Unknown request: " + str(request))
+                        continue
+
+                    send_response_to_socket(s, response)
+                    last_response = response
+                    print("response:", response)
+                else:
+                    if message.startswith("Move"):
+                        server_move = message[4:]
+                        my_move = server_move_to_my_move(server_move, SIZE)
+                        print("Doing Move: " + str(my_move))
+                        board.do_move(my_move)
+                        board.print()
+
+                    elif message.startswith("Removed"):
+                        server_move = str(message[8:])
+                        my_move = server_move_to_my_move(server_move, SIZE)
+                        print("Doing Initial Move: " + str(my_move))
+                        board.do_move(my_move)
+
+                    elif message.startswith("Player:"):
+                        print("I won the coin toss" if message[7:] == "1" else "I lost the coin toss")
+
+                    elif message.startswith("Color:"):
+                        my_player = 1 if message[6:] == "BLACK" else -1
+                        print("My player is " + str(my_player))
+
+                    elif message.startswith("Game:"):
+                        game_num = message[5:]
+                        print("Game Number:", game_num)
+
+                    elif message.startswith("Opponent wins!") or message.startswith("You win!"):
+                        print(message)
+                        winner = my_player if message.startswith("You") else -my_player
+                        break
+                    elif message.startswith("Error"):
+                        print(message)
+                        raise ValueError(last_response)
+                    else:
+                        print("Unknown message: " + str(message))
+        s.close()
 
     else:
         print("Invalid mode: %s" % __MODE)

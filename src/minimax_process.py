@@ -53,7 +53,6 @@ def parallel_minimax(board, player, heuristic_obj, depth, m=1):
     for group in process_groups:
         [p.start() for p in group]
         [p.join() for p in group]
-    print(len(processes), [len(group) for group in process_groups])
 
     weighted_moves = [(processes[i].get_return_value(), moves[i]) for i in range(len(moves))]
 
