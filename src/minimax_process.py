@@ -5,7 +5,7 @@ import minimax
 
 class MinimaxProcess(Process):
 
-    MAX_PROCESSES = 8
+    MAX_PROCESSES = 64
 
     def __init__(self, board, player, heuristic, depth, m):
         super(MinimaxProcess, self).__init__()
