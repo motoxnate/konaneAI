@@ -1,15 +1,17 @@
 import socket
 import argparse
 from graphics import *
+from multiprocessing import Pool
+from threading import Thread
 
 try:
     from src.board import Board
     from src.heuristic import *
-    from src.minimax_process import parallel_minimax
+    from src.minimax_process import parallel_minimax, parallel_minimax_pool
 except ModuleNotFoundError:
     from board import Board
     from heuristic import *
-    from minimax_process import parallel_minimax
+    from minimax_process import parallel_minimax, parallel_minimax_pool
 
 
 
@@ -43,7 +45,7 @@ TRAINING_DEPTH = 5
 
 
 def main(tester=None, test_board=False, test_moves=False):
-    __MODE = "FINAL_EXAM"
+    __MODE = "SERVER_TRAINING"
     """Begin Main"""
     if __MODE == "TRAINING":
         learning_heuristic1 = MCPDLearningHeuristic()
@@ -109,7 +111,16 @@ def main(tester=None, test_board=False, test_moves=False):
 
     elif __MODE == "SERVER_TRAINING":
         # Same as regular training except works with the server to catch any errors we may be having with the server
-        pass
+        h1 = MCPDLearningHeuristic()
+        t1 = Thread(target=do_server_connection, args=(h1, 0, False, 18, USER, OPPONENT, 1))
+        h2 = MCPDLearningHeuristic()
+        t2 = Thread(target=do_server_connection, args=(h2, 1, False, 18, OPPONENT, USER, 5))
+
+        t1.start()
+        t2.start()
+
+        t1.join()
+        t2.join()
 
     elif __MODE == "SERVER_ONE_AI_PLAY":
 
@@ -119,7 +130,7 @@ def main(tester=None, test_board=False, test_moves=False):
 
     elif __MODE == "FINAL_EXAM":
 
-        p, w, b, t = do_server_connection(MCPDLearningHeuristic(), 0, verbose=False, username=USER, opponent=OPPONENT)
+        p, w, b, t = do_server_connection(MCPDLearningHeuristic(), 0, verbose=False, username=USER, opponent=OPPONENT, depth=15)
         print("Game finished, played as %d, player %d won, remaining time: %f" % (p, w, t))
         b.print()
 
@@ -127,7 +138,7 @@ def main(tester=None, test_board=False, test_moves=False):
         print("Invalid mode: %s" % __MODE)
 
 
-def do_server_connection(ai, connection_index, verbose=False, size=SIZE, username=1, opponent=2):
+def do_server_connection(ai, connection_index, verbose=False, size=SIZE, username=1, opponent=2, depth=5):
     """
     Connects to the server and plays a game from the point of one player
     :param ai: the heuristic to use
@@ -136,6 +147,7 @@ def do_server_connection(ai, connection_index, verbose=False, size=SIZE, usernam
     :param size: size of the board to use
     :param username: username and password
     :param opponent: opponent name
+    :param depth: the depth of the minimax search
     :return: (player number of this connection i.e. 1 or -1, winning player, final board state, remaining time)
     """
     log = (lambda x: print("Connection %d: [%s]" % (connection_index, x))) if verbose else (lambda x: x)
@@ -161,12 +173,17 @@ def do_server_connection(ai, connection_index, verbose=False, size=SIZE, usernam
     my_player = 0
     game_num = -1
     winner = 0
+    remaining_time = 180
     log("Using AI: " + str(ai))
+    pool = Pool()
+
+    if not verbose:
+        print("Turn\tTime")
 
     last_response = None
     while winner == 0:
         message = get_message_from_socket(s)
-        time.sleep(0.01)
+        # time.sleep(1)
         messages = message.split('\n')
         log("message: " + str(messages))
 
@@ -190,8 +207,8 @@ def do_server_connection(ai, connection_index, verbose=False, size=SIZE, usernam
                         remaining_time = int(remaining_time) / 1000
                         log("Time Left: " + str(remaining_time))
 
-                    h, move = parallel_minimax(board, my_player, ai, DEPTH)
-                    response = my_move_to_server_move(move, SIZE)
+                    h, move = parallel_minimax_pool(board, my_player, ai, depth, pool=pool)
+                    response = my_move_to_server_move(move, size)
                 else:
                     print("Unknown request: " + str(request))
                     continue
@@ -202,17 +219,17 @@ def do_server_connection(ai, connection_index, verbose=False, size=SIZE, usernam
             else:
                 if message.startswith("Move"):
                     server_move = message[4:]
-                    my_move = server_move_to_my_move(server_move, SIZE)
+                    my_move = server_move_to_my_move(server_move, size)
                     log("Doing Move: " + str(my_move))
                     board.do_move(my_move)
                     if verbose:
                         board.print()
-                    if board.get_move_number() % 5 == 0:
-                        print(board.get_move_number(), end=" ")
+                    elif board.get_move_number() % 5 == 0:
+                        print(board.get_move_number(), "\t", remaining_time, sep="")
 
                 elif message.startswith("Removed"):
                     server_move = str(message[8:])
-                    my_move = server_move_to_my_move(server_move, SIZE)
+                    my_move = server_move_to_my_move(server_move, size)
                     log("Doing Initial Move: " + str(my_move))
                     board.do_move(my_move)
 
@@ -235,8 +252,8 @@ def do_server_connection(ai, connection_index, verbose=False, size=SIZE, usernam
                     raise ValueError(message + " | Last response: " + last_response)
                 else:
                     print("Unknown message: " + str(message))
-    print()
     s.close()
+    pool.close()
     return my_player, winner, board, remaining_time
 
 
@@ -252,6 +269,7 @@ def do_game(heuristic_obj_1, heuristic_obj_2, depth=5, size=18, player=1, verbos
     :return: the winning player of the game tupled with the turn count
     """
     board = Board(size=size)
+    pool = Pool()
     while True:
         moves = board.get_possible_moves(player=player)
         if len(moves) == 0:
@@ -261,9 +279,9 @@ def do_game(heuristic_obj_1, heuristic_obj_2, depth=5, size=18, player=1, verbos
             move = moves[0]
         else:
             if player == 1:
-                h, move = parallel_minimax(board, player, heuristic_obj_1, depth)
+                h, move = parallel_minimax_pool(board, player, heuristic_obj_1, depth, pool=pool)
             else:
-                h, move = parallel_minimax(board, player, heuristic_obj_2, depth)
+                h, move = parallel_minimax_pool(board, player, heuristic_obj_2, depth, pool=pool)
 
         if verbose:
             print("\n")
@@ -271,11 +289,12 @@ def do_game(heuristic_obj_1, heuristic_obj_2, depth=5, size=18, player=1, verbos
             print(h, move)
         else:
             if board.get_move_number() % 5 == 0:
-                print(board.get_move_number(), end=" ")
+                print(board.get_move_number(), end=" ", flush=True)
 
         if not board.do_move(move):
             raise ValueError("Invalid move: " + str(move))
         player *= -1
+    pool.close()
     return -player, board.get_move_number()
 
 

@@ -130,6 +130,11 @@ def maximaxpp_helper(board, player, heuristic_obj, depth):
     return h_lim
 
 
+def alpha_beta_helper_pool(args):
+    board, player, heuristic_obj, depth, m = args
+    return alpha_beta_helper(board, player, heuristic_obj, depth, m=m)
+
+
 def alpha_beta_helper(board, player, heuristic_obj, depth, alpha=None, beta=None, m=1):
     if alpha is None:
         alpha = float("inf")
