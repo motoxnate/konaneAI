@@ -8,6 +8,7 @@ class Board:
     def __init__(self, size=18, board=None):
         if board is None:
             self._board = self.generate_board(size)
+            self._zeros = set()
         else:
             # Copy constructor
             old_board = board.get_array()
@@ -17,6 +18,7 @@ class Board:
             else:
                 self._board = [[old_board[r][c] for c in range(self._size)] for r in range(self._size)]
             self._move_number = board.get_move_number()
+            self._zeros = set(board.get_zeros())
         self._positives = int((size ** 2) / 2)
         self._negatives = int((size ** 2) / 2)
         self._moves = {}
@@ -38,6 +40,9 @@ class Board:
 
     def get_array(self):
         return self._board
+
+    def get_zeros(self):
+        return self._zeros
 
     def get_move_number(self):
         return self._move_number
@@ -67,6 +72,7 @@ class Board:
             elif self._board[move[0][0]][move[0][1]] < 0:
                 self._negatives -= 1
             self._board[move[0][0]][move[0][1]] = 0
+            self._zeros.add(move[0])
             return True
 
         ((r1, c1), (r2, c2)) = move
@@ -85,25 +91,25 @@ class Board:
         elif player == -1:
             self._positives -= num_captured
 
-        # Set attacking place to 0
-        self._board[r1][c1] = 0
-
         # Logic for computing which pieces have been captured
         if r1 == r2:
             # Columns are different:
             min_col = min(c1, c2)
             max_col = max(c1, c2)
-            for c in range(min_col, max_col):
+            for c in range(min_col, max_col + 1):
                 self._board[r1][c] = 0
+                self._zeros.add((r1, c))
         else:
             # Rows are different:
             min_row = min(r1, r2)
             max_row = max(r1, r2)
-            for r in range(min_row, max_row):
+            for r in range(min_row, max_row + 1):
                 self._board[r][c1] = 0
+                self._zeros.add((r, c1))
 
         # Placing the piece that did the capturing in its final position
         self._board[r2][c2] = player
+        self._zeros.remove((r2, c2))
 
         # Resetting the move cache when the board state changes
         self._moves = {}
@@ -268,11 +274,11 @@ class Board:
         if player in self._moves:
             return self._moves[player]
 
-        moves = []
-        for r in range(self._size):
-            for c in range(self._size):
-                if self._board[r][c] == 0:
-                    moves.extend(self._get_moves_for_blank_space(r, c, player))
+        moves = set()
+        for r, c, in self._zeros:
+            if self._board[r][c] == 0:
+                moves.update(self._get_moves_for_blank_space(r, c, player))
+        moves = list(moves)
 
         self._moves[player] = moves
         return moves
