@@ -43,7 +43,7 @@ TRAINING_DEPTH = 5
 
 
 def main(tester=None, test_board=False, test_moves=False):
-    __MODE = "TRAINING"
+    __MODE = "FINAL_EXAM"
     """Begin Main"""
     if __MODE == "TRAINING":
         learning_heuristic1 = MCPDLearningHeuristic()
@@ -68,7 +68,7 @@ def main(tester=None, test_board=False, test_moves=False):
                 starting_player = -1 if session_number % 2 == 0 else 1
                 cur = time.time()
 
-                winner, move_count = do_game(learning_heuristic1, learning_heuristic2, depth=15, size=18,
+                winner, move_count = do_game(learning_heuristic1, learning_heuristic2, depth=25, size=18,
                                              player=starting_player, verbose=False)
                 print("\nPlayer %d won in %d turns in %d seconds" % (winner, move_count, time.time() - cur))
 
@@ -128,7 +128,7 @@ def main(tester=None, test_board=False, test_moves=False):
 
     elif __MODE == "FINAL_EXAM":
 
-        p, w, b, t = do_server_connection(MCPDLearningHeuristic(), 0, verbose=False, username=USER, opponent=OPPONENT, depth=15)
+        p, w, b, t = do_server_connection(MCPDLearningHeuristic(), 0, verbose=True, username=USER, opponent=OPPONENT, depth=25)
         print("Game finished, played as %d, player %d won, remaining time: %f" % (p, w, t))
         b.print()
 
@@ -185,71 +185,74 @@ def do_server_connection(ai, connection_index, verbose=False, size=SIZE, usernam
         messages = message.split('\n')
         log("message: " + str(messages))
 
-        for message in messages:
-            if "?" in message:
-                # It is a request:
-                request = message[message.index("?") + 1:]
+        try:
+            for message in messages:
+                if "?" in message:
+                    # It is a request:
+                    request = message[message.index("?") + 1:]
 
-                if request.startswith("Username"):
-                    response = username
+                    if request.startswith("Username"):
+                        response = username
 
-                elif request.startswith("Password"):
-                    response = username
+                    elif request.startswith("Password"):
+                        response = username
 
-                elif request.startswith("Opponent"):
-                    response = opponent
+                    elif request.startswith("Opponent"):
+                        response = opponent
 
-                elif request.startswith("Move") or request.startswith("Remove"):
-                    if "(" in message:
-                        remaining_time = message[message.index("(") + 1: message.index(")")]
-                        remaining_time = int(remaining_time) / 1000
-                        log("Time Left: " + str(remaining_time))
+                    elif request.startswith("Move") or request.startswith("Remove"):
+                        if "(" in message:
+                            remaining_time = message[message.index("(") + 1: message.index(")")]
+                            remaining_time = int(remaining_time) / 1000
+                            log("Time Left: " + str(remaining_time))
 
-                    h, move = parallel_minimax_pool(board, my_player, ai, depth, pool=pool)
-                    response = my_move_to_server_move(move, size)
+                        h, move = parallel_minimax_pool(board, my_player, ai, depth, pool=pool)
+                        response = my_move_to_server_move(move, size)
+                    else:
+                        print("Unknown request: " + str(request))
+                        continue
+
+                    log("Response:" + response)
+                    send_response_to_socket(s, response)
+                    last_response = response
                 else:
-                    print("Unknown request: " + str(request))
-                    continue
+                    if message.startswith("Move"):
+                        server_move = message[4:]
+                        my_move = server_move_to_my_move(server_move, size)
+                        log("Doing Move: " + str(my_move))
+                        board.do_move(my_move)
+                        if verbose:
+                            board.print()
+                        elif board.get_move_number() % 5 == 0:
+                            print(board.get_move_number(), "\t", remaining_time, sep="")
 
-                log("Response:" + response)
-                send_response_to_socket(s, response)
-                last_response = response
-            else:
-                if message.startswith("Move"):
-                    server_move = message[4:]
-                    my_move = server_move_to_my_move(server_move, size)
-                    log("Doing Move: " + str(my_move))
-                    board.do_move(my_move)
-                    if verbose:
-                        board.print()
-                    elif board.get_move_number() % 5 == 0:
-                        print(board.get_move_number(), "\t", remaining_time, sep="")
+                    elif message.startswith("Removed"):
+                        server_move = str(message[8:])
+                        my_move = server_move_to_my_move(server_move, size)
+                        log("Doing Initial Move: " + str(my_move))
+                        board.do_move(my_move)
 
-                elif message.startswith("Removed"):
-                    server_move = str(message[8:])
-                    my_move = server_move_to_my_move(server_move, size)
-                    log("Doing Initial Move: " + str(my_move))
-                    board.do_move(my_move)
+                    elif message.startswith("Player:"):
+                        log("I won the coin toss" if message[7:] == "1" else "I lost the coin toss")
 
-                elif message.startswith("Player:"):
-                    log("I won the coin toss" if message[7:] == "1" else "I lost the coin toss")
+                    elif message.startswith("Color:"):
+                        my_player = 1 if message[6:] == "BLACK" else -1
+                        log("My player is " + str(my_player))
 
-                elif message.startswith("Color:"):
-                    my_player = 1 if message[6:] == "BLACK" else -1
-                    log("My player is " + str(my_player))
+                    elif message.startswith("Game:"):
+                        game_num = message[5:]
+                        log("Game Number: " + str(game_num))
 
-                elif message.startswith("Game:"):
-                    game_num = message[5:]
-                    log("Game Number: " + str(game_num))
-
-                elif message.startswith("Opponent wins!") or message.startswith("You win!"):
-                    log(message)
-                    winner = my_player if message.startswith("You") else -my_player
-                    break
-                elif message.startswith("Error"):
-                    raise ValueError(message + " | Last response: " + last_response)
-                else:
-                    print("Unknown message: " + str(message))
+                    elif message.startswith("Opponent wins!") or message.startswith("You win!"):
+                        log(message)
+                        winner = my_player if message.startswith("You") else -my_player
+                        break
+                    elif message.startswith("Error"):
+                        raise ValueError(message + " | Last response: " + last_response)
+                    else:
+                        print("Unknown message: " + str(message))
+        except Exception as e:
+            print("Other messages: " + str(messages) + " " + str(e))
     s.close()
     pool.close()
     return my_player, winner, board, remaining_time
