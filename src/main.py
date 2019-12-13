@@ -37,6 +37,7 @@ PASS = "69420"
 OPPONENT = "42069"
 DEPTH = 5
 SIZE = 18
+_X = _Y = 600
 
 TRAINING_SIZE = 18
 TRAINING_DEPTH = 5
@@ -329,6 +330,28 @@ def my_move_to_server_move(my_move, size):
     if my_move[1] is None:
         return "[%d:%d]" % (size - my_move[0][0] - 1, my_move[0][1])
     return "[%d:%d]:[%d:%d]" % (size - my_move[0][0] - 1, my_move[0][1], size - my_move[1][0] - 1, my_move[1][1])
+
+
+def game_window(x, y):
+    """Setup for graphics window"""
+    game_window = GraphWin("AI Settings", x, y)
+    game_window.setBackground(color_rgb(210, 210, 210))
+
+    """Grid"""
+    lines = []
+    for i in range(1, SIZE):
+        lines.append(Line(Point(i * _X / SIZE, 0), Point(i * _X / SIZE, _Y)))
+        lines.append(Line(Point(0, i * _Y / SIZE), Point(_X, i * _Y / SIZE)))
+    for line in lines:
+        line.draw(game_window)
+
+    """Game Pieces"""
+    # pieces = np.zeros((SIZE, SIZE))
+    # for i in range(SIZE):
+    #     for j in range(SIZE):
+    #         pieces[::2,::2] =
+    #         pieces[1::2, 1::2] = 1
+    # print(pieces)
 
 
 def options_window():
