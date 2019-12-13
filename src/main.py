@@ -1,6 +1,7 @@
 import socket
 import argparse
 from graphics import *
+import numpy as np
 
 try:
     from src.board import Board
@@ -41,6 +42,7 @@ _X = _Y = 600
 
 TRAINING_SIZE = 18
 TRAINING_DEPTH = 5
+GRAPHICS = True
 
 
 def main(tester=None, test_board=False, test_moves=False):
@@ -120,7 +122,12 @@ def main(tester=None, test_board=False, test_moves=False):
 
     elif __MODE == "FINAL_EXAM":
 
-        p, w, b, t = do_server_connection(MCPDLearningHeuristic(), 0, verbose=True, username=USER, opponent=OPPONENT)
+        if GRAPHICS:
+            pieces = setup_game_window(_X, _Y)
+        else:
+            pieces = np.zeros((SIZE, SIZE))
+
+        p, w, b, t = do_server_connection(MCPDLearningHeuristic(), 0, pieces, verbose=True, username=USER, opponent=OPPONENT)
         print("Game finished, played as %d, player %d won, remaining time: %f" % (p, w, t))
         b.print()
 
@@ -128,7 +135,7 @@ def main(tester=None, test_board=False, test_moves=False):
         print("Invalid mode: %s" % __MODE)
 
 
-def do_server_connection(ai, connection_index, verbose=False, size=SIZE, username=1, opponent=2):
+def do_server_connection(ai, connection_index, pieces, verbose=False, size=SIZE, username=1, opponent=2):
     """
     Connects to the server and plays a game from the point of one player
     :param ai: the heuristic to use
@@ -167,7 +174,7 @@ def do_server_connection(ai, connection_index, verbose=False, size=SIZE, usernam
     last_response = None
     while winner == 0:
         message = get_message_from_socket(s)
-        time.sleep(0.01)
+        time.sleep(0.2)
         messages = message.split('\n')
         log("message: " + str(messages))
 
@@ -210,12 +217,14 @@ def do_server_connection(ai, connection_index, verbose=False, size=SIZE, usernam
                         board.print()
                     if board.get_move_number() % 5 == 0:
                         print(board.get_move_number(), end=" ")
+                    graphics_move(pieces, my_move)
 
                 elif message.startswith("Removed"):
                     server_move = str(message[8:])
                     my_move = server_move_to_my_move(server_move, SIZE)
                     log("Doing Initial Move: " + str(my_move))
                     board.do_move(my_move)
+                    graphics_move(pieces, my_move)
 
                 elif message.startswith("Player:"):
                     if message[7:] == "1":
@@ -245,6 +254,44 @@ def do_server_connection(ai, connection_index, verbose=False, size=SIZE, usernam
     print()
     s.close()
     return my_player, winner, board, remaining_time
+
+
+def graphics_move(pieces, move):
+    print("Graphics:", move)
+    # If removal
+    if move[1] is None:
+        (c, r) = move[0]
+        pieces[r][c].undraw()
+        return True
+
+    # If normal move
+    ((c1, r1), (c2, r2)) = move
+    piece1 = pieces[r1][c1]
+    piece2 = pieces[r2][c2]
+    start_coords = (piece1.getCenter().getX(), piece1.getCenter().getY())
+    end_coords = (piece2.getCenter().getX(), piece2.getCenter().getY())
+    print("Start:", start_coords)
+    print("End:", end_coords)
+    movement = (end_coords[0]-start_coords[0], end_coords[1]-start_coords[1])
+    if not (r1 == r2 or c1 == c2):
+        raise ValueError
+
+    if r1 == r2:
+        # Columns are different:
+        min_col = min(c1, c2)
+        max_col = max(c1, c2)
+        for c in range(min_col, max_col):
+            pieces[r1][c].undraw()
+
+    else:
+        # Rows are different:
+        min_row = min(r1, r2)
+        max_row = max(r1, r2)
+        for r in range(min_row, max_row):
+            pieces[r][c1].undraw()
+
+    piece1.move(movement[0], movement[1])
+    pieces[c2][r2] = piece1
 
 
 def do_game(heuristic_obj_1, heuristic_obj_2, depth=5, size=18, player=1, verbose=False):
@@ -332,7 +379,7 @@ def my_move_to_server_move(my_move, size):
     return "[%d:%d]:[%d:%d]" % (size - my_move[0][0] - 1, my_move[0][1], size - my_move[1][0] - 1, my_move[1][1])
 
 
-def game_window(x, y):
+def setup_game_window(x, y):
     """Setup for graphics window"""
     game_window = GraphWin("AI Settings", x, y)
     game_window.setBackground(color_rgb(210, 210, 210))
@@ -340,18 +387,46 @@ def game_window(x, y):
     """Grid"""
     lines = []
     for i in range(1, SIZE):
-        lines.append(Line(Point(i * _X / SIZE, 0), Point(i * _X / SIZE, _Y)))
-        lines.append(Line(Point(0, i * _Y / SIZE), Point(_X, i * _Y / SIZE)))
+        lines.append(Line(Point(i * x / SIZE, 0), Point(i * x / SIZE, y)))
+        lines.append(Line(Point(0, i * x / SIZE), Point(x, i * y / SIZE)))
     for line in lines:
         line.draw(game_window)
 
-    """Game Pieces"""
-    # pieces = np.zeros((SIZE, SIZE))
-    # for i in range(SIZE):
-    #     for j in range(SIZE):
-    #         pieces[::2,::2] =
-    #         pieces[1::2, 1::2] = 1
-    # print(pieces)
+    """Game Pieces
+    White: 1, Black: -1"""
+    pieces = np.ndarray((SIZE, SIZE), dtype=Circle)
+    half = x / SIZE / 2
+    rad = half - 5
+    for i in range(0, SIZE, 2):         # Column
+        for j in range(1, SIZE, 2):     # Row
+            # Whites
+            pieces[i][j] = Circle(Point(
+                (i * x / SIZE) + half,
+                (j * y / SIZE) + half), rad)
+            pieces[i][j].setFill("white")
+            pieces[i][j].draw(game_window)
+            # Blacks
+            pieces[i][j-1] = Circle(Point(
+                (i * x / SIZE) + half,
+                ((j-1) * y / SIZE) + half), rad)
+            pieces[i][j-1].setFill("black")
+            pieces[i][j-1].draw(game_window)
+
+    for i in range(1, SIZE, 2):
+        for j in range(0, SIZE, 2):
+            # Whites
+            pieces[i][j] = Circle(Point(
+                (i * x / SIZE) + half,
+                (j * y / SIZE) + half), rad)
+            pieces[i][j].setFill("white")
+            pieces[i][j].draw(game_window)
+            # Blacks
+            pieces[i][j+1] = Circle(Point(
+                (i * x / SIZE) + half,
+                ((j+1) * y / SIZE) + half), rad)
+            pieces[i][j+1].setFill("black")
+            pieces[i][j+1].draw(game_window)
+    return pieces
 
 
 def options_window():
