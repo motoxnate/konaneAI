@@ -119,7 +119,7 @@ def main(tester=None, test_board=False, test_moves=False):
 
     elif __MODE == "FINAL_EXAM":
 
-        p, w, b, t = do_server_connection(MCPDLearningHeuristic(), 0, verbose=False, username=USER, opponent=OPPONENT)
+        p, w, b, t = do_server_connection(MCPDLearningHeuristic(), 0, verbose=True, username=USER, opponent=OPPONENT)
         print("Game finished, played as %d, player %d won, remaining time: %f" % (p, w, t))
         b.print()
 
@@ -197,7 +197,7 @@ def do_server_connection(ai, connection_index, verbose=False, size=SIZE, usernam
                     continue
 
                 log("Response:" + response)
-                send_response_to_socket(s, response)
+                send_response_to_socket(s, response, verbose)
                 last_response = response
             else:
                 if message.startswith("Move"):
@@ -217,10 +217,15 @@ def do_server_connection(ai, connection_index, verbose=False, size=SIZE, usernam
                     board.do_move(my_move)
 
                 elif message.startswith("Player:"):
-                    log("I won the coin toss" if message[7:] == "1" else "I lost the coin toss")
+                    if message[7:] == "1":
+                        my_player = 1
+                        log("I won the coin toss")
+                    else:
+                        my_player = -1
+                        log("I lost the coin toss")
 
                 elif message.startswith("Color:"):
-                    my_player = 1 if message[6:] == "BLACK" else -1
+                    # my_player = 1 if message[6:] == "BLACK" else -1
                     log("My player is " + str(my_player))
 
                 elif message.startswith("Game:"):
@@ -235,6 +240,7 @@ def do_server_connection(ai, connection_index, verbose=False, size=SIZE, usernam
                     raise ValueError(message + " | Last response: " + last_response)
                 else:
                     print("Unknown message: " + str(message))
+                    raise ValueError(message, "Opponent crashed")
     print()
     s.close()
     return my_player, winner, board, remaining_time
@@ -301,7 +307,9 @@ def get_message_from_socket(s):
     return m[0:-1]
 
 
-def send_response_to_socket(s, message):
+def send_response_to_socket(s, message, verbose=False):
+    if verbose:
+        print("Sending:", message)
     try:
         s.send((message + "\r\n").encode(ENCODING))
     except BrokenPipeError as e:
