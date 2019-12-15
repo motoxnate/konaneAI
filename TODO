@@ -5,3 +5,5 @@ Add better CLI
 Add more comments throughout
 
 Verify correctness
+
+Fix import issues in main (maybe add 'smart import' function?)

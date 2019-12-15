@@ -1,17 +1,17 @@
-import socket
 import argparse
 from graphics import *
 from multiprocessing import Pool
-from threading import Thread
 
 try:
     from src.board import Board
     from src.heuristic import *
-    from src.minimax_process import parallel_minimax, parallel_minimax_pool
+    from src.artemis_client import ArtemisClient
+    from src.game import do_game, do_games
 except ModuleNotFoundError:
     from board import Board
     from heuristic import *
-    from minimax_process import parallel_minimax, parallel_minimax_pool
+    from artemis_client import ArtemisClient
+    from game import do_game, do_games
 
 
 """
@@ -28,18 +28,8 @@ Perform first and second moves
 Alternate getting moves and sending next move
 """
 
-HOST = "artemis.engr.uconn.edu"
-PORT = 4705
-ENCODING = "ASCII"
-
-USER = "10"
-PASS = "10"
-OPPONENT = "20"
 DEPTH = 5
 SIZE = 18
-
-TRAINING_SIZE = 18
-TRAINING_DEPTH = 5
 
 
 def main(tester=None, test_board=False, test_moves=False):
@@ -105,220 +95,14 @@ def main(tester=None, test_board=False, test_moves=False):
 
     elif __MODE == "SERVER_ONE_AI_PLAY":
 
-        p, w, b, t = do_server_connection(MCPDLearningHeuristic(), 0, verbose=True, username=USER, opponent=OPPONENT,
+        client = ArtemisClient()
+        p, w, b, t = client.do_server_connection(MCPDLearningHeuristic(), 0, verbose=True, username=USER, opponent=OPPONENT,
                                           depth=25)
         print("\n\nGame finished, played as %d, player %d won, remaining time: %f" % (p, w, t))
         b.print()
 
     else:
         print("Invalid mode: %s" % __MODE)
-
-
-def do_server_connection(ai, connection_index, verbose=False, size=SIZE, username=1, opponent=2, depth=5):
-    """
-    Connects to the server and plays a game from the point of one player
-    :param ai: the heuristic to use
-    :param connection_index: unique identifier used in logging output (all connections should have different indices)
-    :param verbose: true for loud, false for silent
-    :param size: size of the board to use
-    :param username: username and password
-    :param opponent: opponent name
-    :param depth: the depth of the minimax search
-    :return: (player number of this connection i.e. 1 or -1, winning player, final board state, remaining time)
-    """
-    log = (lambda x: print("Connection %d: [%s]" % (connection_index, x))) if verbose else (lambda x: x)
-
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    except socket.error as err:
-        print("Socket error: %s" % str(err))
-        sys.exit(1)
-
-    try:
-        host_ip = socket.gethostbyname(HOST)
-    except socket.gaierror:
-        print("There was an error resolving the host")
-        sys.exit(1)
-
-    # connecting to the server
-    s.connect((host_ip, PORT))
-    version_message = get_message_from_socket(s)
-    log("Connected to server version %s" % version_message.split("v")[-1])
-
-    board = Board(size=size)
-    my_player = 0
-    game_num = -1
-    winner = 0
-    remaining_time = 180
-    log("Using AI: " + str(ai))
-    pool = Pool()
-
-    if not verbose:
-        print("Turn\tTime")
-
-    last_response = None
-    while winner == 0:
-        message = get_message_from_socket(s)
-        # time.sleep(1)
-        messages = message.split('\n')
-        log("message: " + str(messages))
-
-        try:
-            for message in messages:
-                if "?" in message:
-                    # It is a request:
-                    request = message[message.index("?") + 1:]
-
-                    if request.startswith("Username"):
-                        response = username
-
-                    elif request.startswith("Password"):
-                        response = username
-
-                    elif request.startswith("Opponent"):
-                        response = opponent
-
-                    elif request.startswith("Move") or request.startswith("Remove"):
-                        if "(" in message:
-                            remaining_time = message[message.index("(") + 1: message.index(")")]
-                            remaining_time = int(remaining_time) / 1000
-                            log("Time Left: " + str(remaining_time))
-
-                        h, move = parallel_minimax_pool(board, my_player, ai, depth, pool=pool)
-                        response = my_move_to_server_move(move, size)
-                    else:
-                        print("Unknown request: " + str(request))
-                        continue
-
-                    log("Response:" + response)
-                    send_response_to_socket(s, response)
-                    last_response = response
-                else:
-                    if message.startswith("Move"):
-                        server_move = message[4:]
-                        my_move = server_move_to_my_move(server_move, size)
-                        log("Doing Move: " + str(my_move))
-                        board.do_move(my_move)
-                        if verbose:
-                            board.print()
-                        elif board.get_move_number() % 5 == 0:
-                            print(board.get_move_number(), "\t", remaining_time, sep="")
-
-                    elif message.startswith("Removed"):
-                        server_move = str(message[8:])
-                        my_move = server_move_to_my_move(server_move, size)
-                        log("Doing Initial Move: " + str(my_move))
-                        board.do_move(my_move)
-
-                    elif message.startswith("Player:"):
-                        log("I won the coin toss" if message[7:] == "1" else "I lost the coin toss")
-
-                    elif message.startswith("Color:"):
-                        my_player = 1 if message[6:] == "BLACK" else -1
-                        log("My player is " + str(my_player))
-
-                    elif message.startswith("Game:"):
-                        game_num = message[5:]
-                        log("Game Number: " + str(game_num))
-
-                    elif message.startswith("Opponent wins!") or message.startswith("You win!"):
-                        log(message)
-                        winner = my_player if message.startswith("You") else -my_player
-                        break
-                    elif message.startswith("Error"):
-                        raise ValueError(message + " | Last response: " + last_response)
-                    else:
-                        print("Unknown message: " + str(message))
-        except Exception as e:
-            print("Other messages: " + str(messages) + " " + str(e))
-    s.close()
-    pool.close()
-    return my_player, winner, board, remaining_time
-
-
-def do_game(heuristic_obj_1, heuristic_obj_2, depth=5, size=18, player=1, verbose=False):
-    """
-    Completes a game with the given inputs
-    :param heuristic_obj_1: player 1's heuristic
-    :param heuristic_obj_2: player -1's heuristic
-    :param depth:
-    :param size:
-    :param player: the starting player
-    :param verbose:
-    :return: the winning player of the game tupled with the turn count
-    """
-    board = Board(size=size)
-    pool = Pool()
-    while True:
-        moves = board.get_possible_moves(player=player)
-        if len(moves) == 0:
-            break
-        h = 0
-        if board.get_move_number() < 2:
-            move = moves[0]
-        else:
-            if player == 1:
-                h, move = parallel_minimax_pool(board, player, heuristic_obj_1, depth, pool=pool)
-            else:
-                h, move = parallel_minimax_pool(board, player, heuristic_obj_2, depth, pool=pool)
-
-        if verbose:
-            print("\n")
-            board.print()
-            print(h, move)
-        else:
-            if board.get_move_number() % 5 == 0:
-                print(board.get_move_number(), end=" ", flush=True)
-
-        if not board.do_move(move):
-            raise ValueError("Invalid move: " + str(move))
-        player *= -1
-    pool.close()
-    return -player, board.get_move_number()
-
-
-def do_games(game_number, heuristic_obj_1, heuristic_obj_2, depth=5, size=18, verbose=False):
-    wins1 = 0
-    wins2 = 0
-    total_move_numbers = 0
-    player = 1
-    for i in range(game_number):
-        winner, move_number = do_game(heuristic_obj_1, heuristic_obj_2, depth, size, player, verbose)
-        if winner == 1:
-            wins1 += 1
-        else:
-            wins2 += 1
-        total_move_numbers += move_number
-        player *= -1
-        print()
-    return wins1, wins2, total_move_numbers
-
-
-def get_message_from_socket(s):
-    m = str(s.recv(1024).decode(ENCODING))
-    return m[0:-1]
-
-
-def send_response_to_socket(s, message):
-    try:
-        s.send((message + "\r\n").encode(ENCODING))
-    except BrokenPipeError as e:
-        print("Server closed connection")
-        raise e
-
-
-def server_move_to_my_move(server_move, size):
-    point_strs = server_move.replace("[", "").replace("]", "").split(":")
-    point_vals = [int(s) for s in point_strs]
-    if len(point_vals) == 2:
-        return (size - point_vals[0] - 1, point_vals[1]), None
-    return (size - point_vals[0] - 1, point_vals[1]), (size - point_vals[2] - 1, point_vals[3])
-
-
-def my_move_to_server_move(my_move, size):
-    if my_move[1] is None:
-        return "[%d:%d]" % (size - my_move[0][0] - 1, my_move[0][1])
-    return "[%d:%d]:[%d:%d]" % (size - my_move[0][0] - 1, my_move[0][1], size - my_move[1][0] - 1, my_move[1][1])
 
 
 def options_window():
