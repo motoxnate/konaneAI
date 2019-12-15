@@ -4,6 +4,9 @@ from minimax import alpha_beta_helper, alpha_beta_helper_pool
 
 
 class MinimaxProcess(Process):
+    """
+    Class used in the parallel minimax function. Runs an alpha beta search in a single multiprocessing process.
+    """
 
     MAX_PROCESSES = 32
 
@@ -34,6 +37,16 @@ class MinimaxProcess(Process):
 
 
 def parallel_minimax(board, player, heuristic_obj, depth, m=1):
+    """
+    Divides the first layer of the children of the board state into multiple alpha beta calls and separates them
+    between all cores on the machine. Slightly broken because of file limit.
+    :param board: the root state
+    :param player: the player whose turn it is at the root state
+    :param heuristic_obj: the heuristic to use in alpha beta
+    :param depth: the depth of the search tree
+    :param m: 1 to start max, -1 to start min
+    :return: (alpha beta of the best move, best move)
+    """
     moves = board.get_possible_moves(player)
     if len(moves) == 0:
         return heuristic_obj.heuristic(board, player), None
@@ -69,6 +82,18 @@ def parallel_minimax(board, player, heuristic_obj, depth, m=1):
 
 
 def parallel_minimax_pool(board, player, heuristic_obj, depth, m=1, pool=None):
+    """
+    Divides the first layer of the children of the board state into multiple alpha beta calls and separates them
+    between all cores on the machine. Uses process pools because they are more stable.
+    :param board: the root state
+    :param player: the player whose turn it is at the root state
+    :param heuristic_obj: the heuristic to use in alpha beta
+    :param depth: the depth of the search tree
+    :param m: 1 to start max, -1 to start min
+    :param pool: optional parameter to specify a process pool to use. If not specificed, one will be created with all
+    cores in use.
+    :return: (alpha beta of the best move, best move)
+    """
     moves = board.get_possible_moves(player)
     if len(moves) == 0:
         return heuristic_obj.heuristic(board, player), None
