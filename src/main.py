@@ -53,7 +53,7 @@ def main(tester=None, test_board=False, test_moves=False):
                 starting_player = -1 if session_number % 2 == 0 else 1
                 cur = time.time()
 
-                winner, move_count = do_game(learning_heuristic1, learning_heuristic2, depth=25, size=18,
+                winner, move_count = do_game(learning_heuristic1, learning_heuristic2, depth1=25, depth2=25, size=18,
                                              player=starting_player, verbose=False)
                 print("\nPlayer %d won in %d turns in %d seconds" % (winner, move_count, time.time() - cur))
 

@@ -6,8 +6,15 @@ class Board:
     __USE_NUMPY = True
 
     def __init__(self, size=18, board=None):
+        """
+        Board constructor
+        :param size: the size of the board, defaults to 18
+        :param board: the board to copy for a copy constructor
+        """
         if board is None:
-            self._board = self.generate_board(size)
+            self._board = Board.generate_board(size)
+            self._move_number = 1
+            self._size = size
             self._zeros = set()
         else:
             # Copy constructor
@@ -23,12 +30,15 @@ class Board:
         self._negatives = int((size ** 2) / 2)
         self._moves = {}
 
-    def generate_board(self, size, test=False):
+    @staticmethod
+    def generate_board(size):
+        """
+        Generates a starting board state
+        :param size: one side length of the baord. Must be even or an error will be thrown
+        :return: a 2D array representing the starting board configuration
+        """
         if not size % 2 == 0:
             raise ValueError("Board size must be even")
-        if not test:
-            self._size = size
-            self._move_number = 1
         if Board.__USE_NUMPY:
             board = np.zeros((size, size), dtype=np.int8)
             for i in range(size):
@@ -52,17 +62,18 @@ class Board:
             return self._positives
         return self._negatives
 
-    """
-    Moves are represented with tuples of row column pairs.
-    ((r1, c1), (r2, c2)) ==> means piece at (r1, c1) is moving to (r2, c2)
-    In the beginning of the game, the second point (r2, c2) will be None. This means these pieces are just removed from
-    the board.
-    
-    This function computes which pieces are captured automatically.
-    
-    :return The success of the move (True or False)
-    """
     def do_move(self, move):
+        """
+        Moves are represented with tuples of row column pairs.
+        ((r1, c1), (r2, c2)) ==> means piece at (r1, c1) is moving to (r2, c2)
+        In the beginning of the game, the second point (r2, c2) will be None. This means these pieces are just removed from
+        the board.
+
+        This function computes which pieces are captured automatically.
+
+        :param move: the move to perform on the board state
+        :return The success of the move (True or False)
+        """
         self._move_number += 1
 
         if move[1] is None:
@@ -85,7 +96,7 @@ class Board:
             return False
 
         # Update pieces on the board
-        num_captured = self.captured_pieces_for_move(move, player)
+        num_captured = self.captured_pieces_for_move(move)
         if player == 1:
             self._negatives -= num_captured
         elif player == -1:
@@ -115,27 +126,30 @@ class Board:
         self._moves = {}
         return True
 
-    """
-    :return the number of pieces that would be captured by this move
-    """
-    def captured_pieces_for_move(self, move, player):
+    def captured_pieces_for_move(self, move):
+        """
+        Gets the number of captured pieces that a player can take in a given move.
+        :param move: the move to calculate for
+        :param player: the player to capture the piece
+        :return: the number of pieces that would be captured by this move
+        """
         if move[1] is None:
             # Initial move
             return 0
 
-        if not self.is_valid_move(move, player):
-            # Invalid move:
-            return -1
+        # if not self.is_valid_move(move, player):
+        #     # Invalid move:
+        #     return -1
 
         # Valid move
         ((r1, c1), (r2, c2)) = move
         return int((max(r1, r2) - min(r1, r2) + max(c1, c2) - min(c1, c2)) / 2)
 
-    """
-    Contains all the constraints for determining a valid move
-    :return True or False
-    """
     def is_valid_move(self, move, player):
+        """
+        Contains all the constraints for determining a valid move
+        :return True or False
+        """
         if player != 1 and player != -1:
             raise ValueError("%s is an invalid player" % str(player))
 
@@ -214,7 +228,6 @@ class Board:
 
     def _get_moves_for_blank_space(self, r, c, player):
         moves = []
-        # print(r, c)
 
         # Up
         for i in range(r - 2, -1, -2):
@@ -262,10 +275,11 @@ class Board:
 
         return moves
 
-    """
-    :return a list of moves that can be performed
-    """
     def get_possible_moves(self, player=None):
+        """
+        Returns a list of all possible moves that the given player can perform in the current board state.
+        :return a list of moves that can be performed
+        """
         if self._move_number == 1:
             return self.get_first_moves()
         if self._move_number == 2:
@@ -283,10 +297,14 @@ class Board:
         self._moves[player] = moves
         return moves
 
-    """
-    Creates a list of resultant states based on all the possible moves in this state
-    """
     def get_possible_resultant_states(self, player, moves=None):
+        """
+        Returns a list of resultant board states based on the moves given or the possible moves for the given player
+        :param player: the player to compute the moves for
+        :param moves: the moves to create the child states. Adding this param saves a call to self.get_possible_moves
+        which can be expensive
+        :return: a list of child states represented with Board objects
+        """
         if moves is None:
             moves = self.get_possible_moves(player)
         states = [Board(board=self) for _b in range(len(moves))]
@@ -299,18 +317,10 @@ class Board:
         if player < 0:
             return self._negatives
 
-    def is_valid_board(self, board=None):
-        if board is None:
-            board = self._board
-        test_board = self.generate_board(board.shape[0], test=True)
-        for i in range(board.shape[0]):
-            for j in range(board.shape[1]):
-                if not (board[i][j] == test_board[i][j] or board[i][j] == 0):
-                    return False
-                else:
-                    return True
-
     def print(self):
+        """
+        Prints the board neatly
+        """
         sep = " "
         for row in self._board:
             for val in row:

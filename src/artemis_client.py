@@ -6,6 +6,11 @@ from board import Board
 
 
 class ArtemisClient:
+    """
+    This class handles all of the server communication that was needed for the final exam in my AI class.
+
+    It probably won't be useful to anyone but I'm going to leave it in here because I can't justify throwing it out.
+    """
 
     HOST = "artemis.engr.uconn.edu"
     PORT = 4705
