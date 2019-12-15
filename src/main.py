@@ -32,9 +32,9 @@ HOST = "artemis.engr.uconn.edu"
 PORT = 4705
 ENCODING = "ASCII"
 
-USER = "69420"
-PASS = "69420"
-OPPONENT = "42069"
+USER = "10"
+PASS = "10"
+OPPONENT = "20"
 DEPTH = 5
 SIZE = 18
 
@@ -43,7 +43,7 @@ TRAINING_DEPTH = 5
 
 
 def main(tester=None, test_board=False, test_moves=False):
-    __MODE = "FINAL_EXAM"
+    __MODE = "TRAINING"
     """Begin Main"""
     if __MODE == "TRAINING":
         learning_heuristic1 = MCPDLearningHeuristic()
@@ -52,16 +52,11 @@ def main(tester=None, test_board=False, test_moves=False):
         try:
             while True:
                 """
-                Playing training games
+                Playing training games indefinitely.
 
                 Player 1 always has the more favorable heuristic settings
                 If player -1 wins, then player 1 gets player -1's settings and a new set of settings are generated for
                 player -1.
-
-                Randomness setting in learning heuristic may be:
-                False: Not random
-                UNIFORM: Uses a uniform distribution
-                NORMAL: Uses a normal distribution
                 """
                 learning_heuristic2 = MCPDLearningHeuristic(randomness="UNIFORM")
                 print("Player 1: %s\nPlayer -1: %s" % (str(learning_heuristic1), str(learning_heuristic2)))
@@ -103,33 +98,16 @@ def main(tester=None, test_board=False, test_moves=False):
         print(message)
 
     elif __MODE == "HUMAN_PLAYER":
-        # Should create an AI connected to the server and a graphics windows connected to the server that will play
-        # against the AI
+        """
+        Creates a graphical interface for the user to play against an AI with.
+        """
         pass
-
-    elif __MODE == "SERVER_TRAINING":
-        # Same as regular training except works with the server to catch any errors we may be having with the server
-        h1 = MCPDLearningHeuristic()
-        t1 = Thread(target=do_server_connection, args=(h1, 0, False, 18, USER, OPPONENT, 1))
-        h2 = MCPDLearningHeuristic()
-        t2 = Thread(target=do_server_connection, args=(h2, 1, False, 18, OPPONENT, USER, 5))
-
-        t1.start()
-        t2.start()
-
-        t1.join()
-        t2.join()
 
     elif __MODE == "SERVER_ONE_AI_PLAY":
 
-        p, w, b, t = do_server_connection(MCPDLearningHeuristic(), 0, verbose=True, username=USER, opponent=OPPONENT)
-        print("Game finished, played as %d, player %d won, remaining time: %f" % (p, w, t))
-        b.print()
-
-    elif __MODE == "FINAL_EXAM":
-
-        p, w, b, t = do_server_connection(MCPDLearningHeuristic(), 0, verbose=True, username=USER, opponent=OPPONENT, depth=25)
-        print("Game finished, played as %d, player %d won, remaining time: %f" % (p, w, t))
+        p, w, b, t = do_server_connection(MCPDLearningHeuristic(), 0, verbose=True, username=USER, opponent=OPPONENT,
+                                          depth=25)
+        print("\n\nGame finished, played as %d, player %d won, remaining time: %f" % (p, w, t))
         b.print()
 
     else:
