@@ -1,18 +1,18 @@
-import socket
 import argparse
 from graphics import *
 import numpy as np
+from multiprocessing import Pool
 
 try:
     from src.board import Board
     from src.heuristic import *
-    from src.minimax_process import parallel_minimax
+    from src.artemis_client import ArtemisClient
+    from src.game import do_game, do_games
 except ModuleNotFoundError:
     from board import Board
     from heuristic import *
-    from minimax_process import parallel_minimax
-
-
+    from artemis_client import ArtemisClient
+    from game import do_game, do_games
 
 
 """
@@ -29,24 +29,16 @@ Perform first and second moves
 Alternate getting moves and sending next move
 """
 
-HOST = "artemis.engr.uconn.edu"
-PORT = 4705
-ENCODING = "ASCII"
-
-USER = "69420"
-PASS = "69420"
-OPPONENT = "42069"
 DEPTH = 5
 SIZE = 18
 _X = _Y = 600
-
 TRAINING_SIZE = 18
 TRAINING_DEPTH = 5
 GRAPHICS = True
 
 
 def main(tester=None, test_board=False, test_moves=False):
-    __MODE = "FINAL_EXAM"
+    __MODE = "TRAINING"
     """Begin Main"""
     if __MODE == "TRAINING":
         learning_heuristic1 = MCPDLearningHeuristic()
@@ -55,23 +47,18 @@ def main(tester=None, test_board=False, test_moves=False):
         try:
             while True:
                 """
-                Playing training games
+                Playing training games indefinitely.
 
                 Player 1 always has the more favorable heuristic settings
                 If player -1 wins, then player 1 gets player -1's settings and a new set of settings are generated for
                 player -1.
-
-                Randomness setting in learning heuristic may be:
-                False: Not random
-                UNIFORM: Uses a uniform distribution
-                NORMAL: Uses a normal distribution
                 """
                 learning_heuristic2 = MCPDLearningHeuristic(randomness="UNIFORM")
                 print("Player 1: %s\nPlayer -1: %s" % (str(learning_heuristic1), str(learning_heuristic2)))
                 starting_player = -1 if session_number % 2 == 0 else 1
                 cur = time.time()
 
-                winner, move_count = do_game(learning_heuristic1, learning_heuristic2, depth=20, size=18,
+                winner, move_count = do_game(learning_heuristic1, learning_heuristic2, depth1=1, depth2=2, size=18,
                                              player=starting_player, verbose=False)
                 print("\nPlayer %d won in %d turns in %d seconds" % (winner, move_count, time.time() - cur))
 
@@ -106,327 +93,20 @@ def main(tester=None, test_board=False, test_moves=False):
         print(message)
 
     elif __MODE == "HUMAN_PLAYER":
-        # Should create an AI connected to the server and a graphics windows connected to the server that will play
-        # against the AI
-        pass
-
-    elif __MODE == "SERVER_TRAINING":
-        # Same as regular training except works with the server to catch any errors we may be having with the server
+        """
+        Creates a graphical interface for the user to play against an AI with.
+        """
         pass
 
     elif __MODE == "SERVER_ONE_AI_PLAY":
-
-        p, w, b, t = do_server_connection(MCPDLearningHeuristic(), 0, verbose=True, username=USER, opponent=OPPONENT)
-        print("Game finished, played as %d, player %d won, remaining time: %f" % (p, w, t))
-        b.print()
-
-    elif __MODE == "FINAL_EXAM":
-
-        if GRAPHICS:
-            pieces = setup_game_window(_X, _Y)
-        else:
-            pieces = np.zeros((SIZE, SIZE))
-
-        p, w, b, t = do_server_connection(MCPDLearningHeuristic(), 0, pieces, verbose=True, username=USER, opponent=OPPONENT)
-        print("Game finished, played as %d, player %d won, remaining time: %f" % (p, w, t))
+        client = ArtemisClient()
+        p, w, b, t = client.do_server_connection(MCPDLearningHeuristic(), 0, verbose=True, username=USER, opponent=OPPONENT,
+                                            depth=25)
+        print("\n\nGame finished, played as %d, player %d won, remaining time: %f" % (p, w, t))
         b.print()
 
     else:
         print("Invalid mode: %s" % __MODE)
-
-
-def do_server_connection(ai, connection_index, pieces, verbose=False, size=SIZE, username=1, opponent=2):
-    """
-    Connects to the server and plays a game from the point of one player
-    :param ai: the heuristic to use
-    :param connection_index: unique identifier used in logging output (all connections should have different indices)
-    :param verbose: true for loud, false for silent
-    :param size: size of the board to use
-    :param username: username and password
-    :param opponent: opponent name
-    :return: (player number of this connection i.e. 1 or -1, winning player, final board state, remaining time)
-    """
-    log = (lambda x: print("Connection %d: [%s]" % (connection_index, x))) if verbose else (lambda x: x)
-
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    except socket.error as err:
-        print("Socket error: %s" % str(err))
-        sys.exit(1)
-
-    try:
-        host_ip = socket.gethostbyname(HOST)
-    except socket.gaierror:
-        print("There was an error resolving the host")
-        sys.exit(1)
-
-    # connecting to the server
-    s.connect((host_ip, PORT))
-    version_message = get_message_from_socket(s)
-    log("Connected to server version %s" % version_message.split("v")[-1])
-
-    board = Board(size=size)
-    my_player = 0
-    game_num = -1
-    winner = 0
-    log("Using AI: " + str(ai))
-
-    last_response = None
-    while winner == 0:
-        message = get_message_from_socket(s)
-        time.sleep(0.2)
-        messages = message.split('\n')
-        log("message: " + str(messages))
-
-        for message in messages:
-            if "?" in message:
-                # It is a request:
-                request = message[message.index("?") + 1:]
-
-                if request.startswith("Username"):
-                    response = username
-
-                elif request.startswith("Password"):
-                    response = username
-
-                elif request.startswith("Opponent"):
-                    response = opponent
-
-                elif request.startswith("Move") or request.startswith("Remove"):
-                    if "(" in message:
-                        remaining_time = message[message.index("(") + 1: message.index(")")]
-                        remaining_time = int(remaining_time) / 1000
-                        log("Time Left: " + str(remaining_time))
-
-                    h, move = parallel_minimax(board, my_player, ai, DEPTH)
-                    response = my_move_to_server_move(move, SIZE)
-                else:
-                    print("Unknown request: " + str(request))
-                    continue
-
-                log("Response:" + response)
-                send_response_to_socket(s, response, verbose)
-                last_response = response
-            else:
-                if message.startswith("Move"):
-                    server_move = message[4:]
-                    my_move = server_move_to_my_move(server_move, SIZE)
-                    log("Doing Move: " + str(my_move))
-                    board.do_move(my_move)
-                    if verbose:
-                        board.print()
-                    if board.get_move_number() % 5 == 0:
-                        print(board.get_move_number(), end=" ")
-                    graphics_move(pieces, my_move)
-
-                elif message.startswith("Removed"):
-                    server_move = str(message[8:])
-                    my_move = server_move_to_my_move(server_move, SIZE)
-                    log("Doing Initial Move: " + str(my_move))
-                    board.do_move(my_move)
-                    graphics_move(pieces, my_move)
-
-                elif message.startswith("Player:"):
-                    if message[7:] == "1":
-                        my_player = 1
-                        log("I won the coin toss")
-                    else:
-                        my_player = -1
-                        log("I lost the coin toss")
-
-                elif message.startswith("Color:"):
-                    # my_player = 1 if message[6:] == "BLACK" else -1
-                    log("My player is " + str(my_player))
-
-                elif message.startswith("Game:"):
-                    game_num = message[5:]
-                    log("Game Number: " + str(game_num))
-
-                elif message.startswith("Opponent wins!") or message.startswith("You win!"):
-                    log(message)
-                    winner = my_player if message.startswith("You") else -my_player
-                    break
-                elif message.startswith("Error"):
-                    raise ValueError(message + " | Last response: " + last_response)
-                else:
-                    print("Unknown message: " + str(message))
-                    raise ValueError(message, "Opponent crashed")
-    print()
-    s.close()
-    return my_player, winner, board, remaining_time
-
-
-def graphics_move(pieces, move):
-    print("Graphics:", move)
-    # If removal
-    if move[1] is None:
-        (c, r) = move[0]
-        pieces[r][c].undraw()
-        return True
-
-    # If normal move
-    ((c1, r1), (c2, r2)) = move
-    piece1 = pieces[r1][c1]
-    piece2 = pieces[r2][c2]
-    start_coords = (piece1.getCenter().getX(), piece1.getCenter().getY())
-    end_coords = (piece2.getCenter().getX(), piece2.getCenter().getY())
-    print("Start:", start_coords)
-    print("End:", end_coords)
-    movement = (end_coords[0]-start_coords[0], end_coords[1]-start_coords[1])
-    if not (r1 == r2 or c1 == c2):
-        raise ValueError
-
-    if r1 == r2:
-        # Columns are different:
-        min_col = min(c1, c2)
-        max_col = max(c1, c2)
-        for c in range(min_col, max_col):
-            pieces[r1][c].undraw()
-
-    else:
-        # Rows are different:
-        min_row = min(r1, r2)
-        max_row = max(r1, r2)
-        for r in range(min_row, max_row):
-            pieces[r][c1].undraw()
-
-    piece1.move(movement[0], movement[1])
-    pieces[c2][r2] = piece1
-
-
-def do_game(heuristic_obj_1, heuristic_obj_2, depth=5, size=18, player=1, verbose=False):
-    """
-    Completes a game with the given inputs
-    :param heuristic_obj_1: player 1's heuristic
-    :param heuristic_obj_2: player -1's heuristic
-    :param depth:
-    :param size:
-    :param player: the starting player
-    :param verbose:
-    :return: the winning player of the game tupled with the turn count
-    """
-    board = Board(size=size)
-    while True:
-        moves = board.get_possible_moves(player=player)
-        if len(moves) == 0:
-            break
-        h = 0
-        if board.get_move_number() < 2:
-            move = moves[0]
-        else:
-            if player == 1:
-                h, move = parallel_minimax(board, player, heuristic_obj_1, depth)
-            else:
-                h, move = parallel_minimax(board, player, heuristic_obj_2, depth)
-
-        if verbose:
-            print("\n")
-            board.print()
-            print(h, move)
-        else:
-            if board.get_move_number() % 5 == 0:
-                print(board.get_move_number(), end=" ")
-
-        if not board.do_move(move):
-            raise ValueError("Invalid move: " + str(move))
-        player *= -1
-    return -player, board.get_move_number()
-
-
-def do_games(game_number, heuristic_obj_1, heuristic_obj_2, depth=5, size=18, verbose=False):
-    wins1 = 0
-    wins2 = 0
-    total_move_numbers = 0
-    player = 1
-    for i in range(game_number):
-        winner, move_number = do_game(heuristic_obj_1, heuristic_obj_2, depth, size, player, verbose)
-        if winner == 1:
-            wins1 += 1
-        else:
-            wins2 += 1
-        total_move_numbers += move_number
-        player *= -1
-        print()
-    return wins1, wins2, total_move_numbers
-
-
-def get_message_from_socket(s):
-    m = str(s.recv(1024).decode(ENCODING))
-    return m[0:-1]
-
-
-def send_response_to_socket(s, message, verbose=False):
-    if verbose:
-        print("Sending:", message)
-    try:
-        s.send((message + "\r\n").encode(ENCODING))
-    except BrokenPipeError as e:
-        print("Server closed connection")
-        raise e
-
-
-def server_move_to_my_move(server_move, size):
-    point_strs = server_move.replace("[", "").replace("]", "").split(":")
-    point_vals = [int(s) for s in point_strs]
-    if len(point_vals) == 2:
-        return (size - point_vals[0] - 1, point_vals[1]), None
-    return (size - point_vals[0] - 1, point_vals[1]), (size - point_vals[2] - 1, point_vals[3])
-
-
-def my_move_to_server_move(my_move, size):
-    if my_move[1] is None:
-        return "[%d:%d]" % (size - my_move[0][0] - 1, my_move[0][1])
-    return "[%d:%d]:[%d:%d]" % (size - my_move[0][0] - 1, my_move[0][1], size - my_move[1][0] - 1, my_move[1][1])
-
-
-def setup_game_window(x, y):
-    """Setup for graphics window"""
-    game_window = GraphWin("AI Settings", x, y)
-    game_window.setBackground(color_rgb(210, 210, 210))
-
-    """Grid"""
-    lines = []
-    for i in range(1, SIZE):
-        lines.append(Line(Point(i * x / SIZE, 0), Point(i * x / SIZE, y)))
-        lines.append(Line(Point(0, i * x / SIZE), Point(x, i * y / SIZE)))
-    for line in lines:
-        line.draw(game_window)
-
-    """Game Pieces
-    White: 1, Black: -1"""
-    pieces = np.ndarray((SIZE, SIZE), dtype=Circle)
-    half = x / SIZE / 2
-    rad = half - 5
-    for i in range(0, SIZE, 2):         # Column
-        for j in range(1, SIZE, 2):     # Row
-            # Whites
-            pieces[i][j] = Circle(Point(
-                (i * x / SIZE) + half,
-                (j * y / SIZE) + half), rad)
-            pieces[i][j].setFill("white")
-            pieces[i][j].draw(game_window)
-            # Blacks
-            pieces[i][j-1] = Circle(Point(
-                (i * x / SIZE) + half,
-                ((j-1) * y / SIZE) + half), rad)
-            pieces[i][j-1].setFill("black")
-            pieces[i][j-1].draw(game_window)
-
-    for i in range(1, SIZE, 2):
-        for j in range(0, SIZE, 2):
-            # Whites
-            pieces[i][j] = Circle(Point(
-                (i * x / SIZE) + half,
-                (j * y / SIZE) + half), rad)
-            pieces[i][j].setFill("white")
-            pieces[i][j].draw(game_window)
-            # Blacks
-            pieces[i][j+1] = Circle(Point(
-                (i * x / SIZE) + half,
-                ((j+1) * y / SIZE) + half), rad)
-            pieces[i][j+1].setFill("black")
-            pieces[i][j+1].draw(game_window)
-    return pieces
 
 
 def options_window():

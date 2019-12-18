@@ -102,7 +102,7 @@ def maximaxpp(board, player, heuristic_obj, depth):
 
 def maximaxpp_helper(board, player, heuristic_obj, depth):
     """
-    Maximaxpp helper function
+    Maximaxpp helper function.
     :param board: Board object
     :param player: the player whose turn it is at the top level of the search tree
     :param heuristic_obj: heuristic to use
@@ -130,19 +130,41 @@ def maximaxpp_helper(board, player, heuristic_obj, depth):
     return h_lim
 
 
+def alpha_beta_helper_pool(args):
+    """
+    For running alpha beta in a process pool
+    :param args: the iterator of arguments to pass to the real alpha beta helper
+    :return: the alpha beta value for the given arguments
+    """
+    board, player, heuristic_obj, depth, m = args
+    return alpha_beta_helper(board, player, heuristic_obj, depth, m=m)
+
+
 def alpha_beta_helper(board, player, heuristic_obj, depth, alpha=None, beta=None, m=1):
+    """
+    Returns the alpha-beta weight for the given board state and heuristic
+    :param board: the current board state
+    :param player: the player to compute for (either the max or min depending on m)
+    :param heuristic_obj:
+    :param depth: the depth of the search
+    :param alpha: leave blank
+    :param beta: leave blank
+    :param m: 1 to start with max player, -1 to start with min player
+    :return: a float
+    """
     if alpha is None:
         alpha = float("inf")
     if beta is None:
         beta = -float("inf")
 
     if depth == 0:
-        return m * heuristic_obj.heuristic(board, player * m)
+        # altering the player to compute the heuristic for whosever turn it is at the root of the state tree
+        return heuristic_obj.heuristic(board, player * m)
 
     # Deriving new states
     moves = board.get_possible_moves(player)
     if len(moves) == 0:
-        return m * heuristic_obj.heuristic(board, player * m)
+        return heuristic_obj.heuristic(board, player * m)
     states = board.get_possible_resultant_states(player, moves)
 
     if m == 1:

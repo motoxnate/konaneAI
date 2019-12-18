@@ -1,37 +1,9 @@
-
-Consider the advantages of making algorithms symmetrical across vertical and horizontal axes
-    This would work really well if we could save board states
-    Saving board states is illegal... so it may not be much help because each game will probably not evaluate
-    symmetrically equal board states in the same game.
-    This will be beneficial if we can save board states between games...
-
-Design heuristic function for evaluating board states
-    a. Subtract enemy pieces from friendly pieces
-    b. Number of possible moves
-    c. Use constants for weighting that could be self adjusting
-    d. Training methods for minimax constants
-    e. For the endgame, the heuristic should prioritize killer moves
-
-Implement Heuristic Equation
-    This should be some sort of linear combination of the heuristics, the number of moves, and constants
-    For every heuristic, we should include two terms:
-        c1 * n * h
-        c2 * 1/n * h
-        c1 and c2 are constants
-        n is the move number
-        h is the heuristic output
-        This is because we need some heuristics to scale proportionally with the move number and some that scale
-        inversely
-        We may want to add other powers in the future other than just 1 and -1
-
-Add alpha beta maximax_pp algorithm
-
 Graphics Py for GUI
 
-Speed up
-    Evaluate efficiency of helper functions
-        Make sure most are constant time with only a few O(n)
+Add better CLI
 
+Add more comments throughout
 
-Meeting Notes:
-- Opponent Moves?
+Verify correctness
+
+Fix import issues in main (maybe add 'smart import' function?)
