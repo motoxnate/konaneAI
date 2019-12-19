@@ -10,7 +10,8 @@ def do_game(heuristic_obj_1, heuristic_obj_2, depth1=5, depth2=5, size=18, playe
     :param heuristic_obj_1: player 1's heuristic
     :param heuristic_obj_2: player -1's heuristic
     :param depth1: the depth of the first heuristic's search
-    :param size: the depth of the second heuristic's search
+    :param depth2: the depth of the second heuristic's search
+    :param size: the size of the board
     :param player: the starting player
     :param verbose:
     :return: the winning player of the game tupled with the turn count

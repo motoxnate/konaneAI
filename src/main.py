@@ -14,7 +14,6 @@ except ModuleNotFoundError:
     from artemis_client import ArtemisClient
     from game import do_game, do_games
 
-
 """
 Operational Modes
 
@@ -35,10 +34,12 @@ _X = _Y = 600
 TRAINING_SIZE = 18
 TRAINING_DEPTH = 5
 GRAPHICS = True
+USER = "5555"
+OPPONENT = "4444"
 
 
 def main(tester=None, test_board=False, test_moves=False):
-    __MODE = "TRAINING"
+    __MODE = "SERVER_ONE_AI_PLAY"
     """Begin Main"""
     if __MODE == "TRAINING":
         learning_heuristic1 = MCPDLearningHeuristic()
@@ -81,7 +82,7 @@ def main(tester=None, test_board=False, test_moves=False):
         h2 = PieceDifferenceHeuristic()
         total_games = 5
 
-        wins1, wins2, total_turns = do_games(total_games, h1, h2, depth=5, size=18)
+        wins1, wins2, total_turns = do_games(total_games, h1, h2, depth1=5, depth2=5, size=18)
 
         message = """
         
@@ -89,7 +90,8 @@ def main(tester=None, test_board=False, test_moves=False):
         %d Games played, %d turns played, about %f turns on average per game
         %d Player 1 wins, about %d%% of the time
         %d Player -1 wins, about %d%% of the time
-        """ % (total_games, total_turns, total_turns / total_games, wins1, int(wins1 / total_games * 100), wins2, int(wins2 / total_games * 100))
+        """ % (total_games, total_turns, total_turns / total_games, wins1, int(wins1 / total_games * 100), wins2,
+               int(wins2 / total_games * 100))
         print(message)
 
     elif __MODE == "HUMAN_PLAYER":
@@ -100,13 +102,107 @@ def main(tester=None, test_board=False, test_moves=False):
 
     elif __MODE == "SERVER_ONE_AI_PLAY":
         client = ArtemisClient()
-        p, w, b, t = client.do_server_connection(MCPDLearningHeuristic(), 0, verbose=True, username=USER, opponent=OPPONENT,
-                                            depth=25)
+        if GRAPHICS:
+            pieces = setup_game_window(_X, _Y)
+        else:
+            pieces = np.zeros((SIZE, SIZE))
+        p, w, b, t = client.do_server_connection(MCPDLearningHeuristic(), 0, verbose=True, username=USER,
+                                                 opponent=OPPONENT,
+                                                 depth=25)
         print("\n\nGame finished, played as %d, player %d won, remaining time: %f" % (p, w, t))
         b.print()
 
     else:
         print("Invalid mode: %s" % __MODE)
+
+
+def setup_game_window(x, y):
+    """Setup for graphics window
+    :param x: x resolution
+    :param y: y resolution"""
+    game_window = GraphWin("AI Settings", x, y)
+    game_window.setBackground(color_rgb(210, 210, 210))
+    """Grid"""
+    lines = []
+    for i in range(1, SIZE):
+        lines.append(Line(Point(i * x / SIZE, 0), Point(i * x / SIZE, y)))
+        lines.append(Line(Point(0, i * x / SIZE), Point(x, i * y / SIZE)))
+    for line in lines:
+        line.draw(game_window)
+
+    """Game Pieces
+       White: 1, Black: -1"""
+    pieces = np.ndarray((SIZE, SIZE), dtype=Circle)
+    half = x / SIZE / 2
+    rad = half - 5
+    for i in range(0, SIZE, 2):  # Column
+        for j in range(1, SIZE, 2):  # Row
+            # Whites
+            pieces[i][j] = Circle(Point(
+                (i * x / SIZE) + half,
+                (j * y / SIZE) + half), rad)
+            pieces[i][j].setFill("white")
+            pieces[i][j].draw(game_window)
+            # Blacks
+            pieces[i][j - 1] = Circle(Point(
+                (i * x / SIZE) + half,
+                ((j - 1) * y / SIZE) + half), rad)
+            pieces[i][j - 1].setFill("black")
+            pieces[i][j - 1].draw(game_window)
+
+    for i in range(1, SIZE, 2):
+        for j in range(0, SIZE, 2):
+            # Whites
+            pieces[i][j] = Circle(Point(
+                (i * x / SIZE) + half,
+                (j * y / SIZE) + half), rad)
+            pieces[i][j].setFill("white")
+            pieces[i][j].draw(game_window)
+            # Blacks
+            pieces[i][j + 1] = Circle(Point(
+                (i * x / SIZE) + half,
+                ((j + 1) * y / SIZE) + half), rad)
+            pieces[i][j + 1].setFill("black")
+            pieces[i][j + 1].draw(game_window)
+    return pieces
+
+
+def graphics_move(pieces, move):
+    print("Graphics:", move)
+    # If removal
+    if move[1] is None:
+        (c, r) = move[0]
+        pieces[r][c].undraw()
+        return True
+
+    # If normal move
+    ((c1, r1), (c2, r2)) = move
+    piece1 = pieces[r1][c1]
+    piece2 = pieces[r2][c2]
+    start_coords = (piece1.getCenter().getX(), piece1.getCenter().getY())
+    end_coords = (piece2.getCenter().getX(), piece2.getCenter().getY())
+    print("Start:", start_coords)
+    print("End:", end_coords)
+    movement = (end_coords[0]-start_coords[0], end_coords[1]-start_coords[1])
+    if not (r1 == r2 or c1 == c2):
+        raise ValueError
+
+    if r1 == r2:
+        # Columns are different:
+        min_col = min(c1, c2)
+        max_col = max(c1, c2)
+        for c in range(min_col, max_col):
+            pieces[r1][c].undraw()
+
+    else:
+        # Rows are different:
+        min_row = min(r1, r2)
+        max_row = max(r1, r2)
+        for r in range(min_row, max_row):
+            pieces[r][c1].undraw()
+
+    piece1.move(movement[0], movement[1])
+    pieces[c2][r2] = piece1
 
 
 def options_window():
