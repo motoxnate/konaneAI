@@ -34,7 +34,7 @@ class Board:
     def generate_board(size):
         """
         Generates a starting board state
-        :param size: one side length of the baord. Must be even or an error will be thrown
+        :param size: one side length of the board. Must be even or an error will be thrown
         :return: a 2D array representing the starting board configuration
         """
         if not size % 2 == 0:

@@ -3,6 +3,7 @@ import socket
 from multiprocessing import Pool
 
 from board import Board
+from minimax_process import parallel_minimax_pool
 
 
 class ArtemisClient:
@@ -21,8 +22,12 @@ class ArtemisClient:
     PASS = "10"
     OPPONENT = "7"
 
-    def __init__(self):
+    def __init__(self, gui=None):
         self.s = None
+        self.gui = False
+        if gui is not None:
+            self.graphics = True
+            self.graphics_obj = gui
 
     def do_server_connection(self, ai, connection_index, verbose=False, size=18, username=1, opponent=2, depth=5):
         """
@@ -96,6 +101,8 @@ class ArtemisClient:
 
                             h, move = parallel_minimax_pool(board, my_player, ai, depth, pool=pool)
                             response = ArtemisClient.my_move_to_server_move(move, size)
+                            if self.graphics:
+                                self.graphics_obj.graphics_move(move)
                         else:
                             print("Unknown request: " + str(request))
                             continue
@@ -113,12 +120,16 @@ class ArtemisClient:
                                 board.print()
                             elif board.get_move_number() % 5 == 0:
                                 print(board.get_move_number(), "\t", remaining_time, sep="")
+                            if self.graphics:
+                                self.graphics_obj.graphics_move(my_move)
 
                         elif message.startswith("Removed"):
                             server_move = str(message[8:])
                             my_move = ArtemisClient.server_move_to_my_move(server_move, size)
                             log("Doing Initial Move: " + str(my_move))
                             board.do_move(my_move)
+                            if self.graphics:
+                                self.graphics_obj.graphics_move(my_move)
 
                         elif message.startswith("Player:"):
                             log("I won the coin toss" if message[7:] == "1" else "I lost the coin toss")
@@ -139,6 +150,7 @@ class ArtemisClient:
                             raise ValueError(message + " | Last response: " + last_response)
                         else:
                             print("Unknown message: " + str(message))
+                            raise ValueError(message, "Opponent Crashed")
             except Exception as e:
                 print("Other messages: " + str(messages) + " " + str(e))
         self.s.close()

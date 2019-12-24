@@ -101,11 +101,10 @@ def main(tester=None, test_board=False, test_moves=False):
         pass
 
     elif __MODE == "SERVER_ONE_AI_PLAY":
-        client = ArtemisClient()
+        pieces = None
         if GRAPHICS:
-            pieces = setup_game_window(_X, _Y, SIZE)
-        else:
-            pieces = np.zeros((SIZE, SIZE))
+            gui_object = GUI(_X, _Y, SIZE)
+        client = ArtemisClient(gui=gui_object)
         p, w, b, t = client.do_server_connection(MCPDLearningHeuristic(), 0, verbose=True, username=USER,
                                                  opponent=OPPONENT,
                                                  depth=25)
@@ -139,6 +138,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-username", "-u", type=str, help="Username")
     parser.add_argument("-opponent", "-o", type=str, help="Opponent")
+    parser.add_argument("-graphics", "-g", type=bool, help="Graphics")
     args = parser.parse_args()
     if args.username:
         # print("Username:", args.username)
@@ -146,4 +146,5 @@ if __name__ == "__main__":
     if args.opponent:
         # print("Opponent:", args.opponent)
         OPPONENT = args.opponent
+    GRAPHICS = (True if args.graphics else False)
     main()
