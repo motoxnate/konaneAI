@@ -23,9 +23,12 @@ Generate a list of random weights
 HEURISTIC_COMPETITION:
 Runs a competition between two different heuristics to see which performs better
 
-FINAL_EXAM:
-Perform first and second moves
-Alternate getting moves and sending next move
+HUMAN_PLAYER:
+Graphics window pops up and the human user can play against the AI
+
+SERVER_ONE_AI_PLAY:
+Code that uses the artemis client class to communicate with the final exam server. Probably won't be a useful mode 
+outside of the final exam date.
 """
 
 DEPTH = 5
