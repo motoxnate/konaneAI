@@ -42,7 +42,7 @@ OPPONENT = "4444"
 
 
 def main(tester=None, test_board=False, test_moves=False):
-    __MODE = "SERVER_ONE_AI_PLAY"
+    __MODE = "TRAINING"
     """Begin Main"""
     if __MODE == "TRAINING":
         learning_heuristic1 = MCPDLearningHeuristic()
@@ -107,7 +107,10 @@ def main(tester=None, test_board=False, test_moves=False):
         pieces = None
         if GRAPHICS:
             gui_object = GUI(_X, _Y, SIZE)
-        client = ArtemisClient(gui=gui_object)
+            client = ArtemisClient(gui=gui_object)
+        else:
+            client = ArtemisClient()
+
         p, w, b, t = client.do_server_connection(MCPDLearningHeuristic(), 0, verbose=True, username=USER,
                                                  opponent=OPPONENT,
                                                  depth=25)
